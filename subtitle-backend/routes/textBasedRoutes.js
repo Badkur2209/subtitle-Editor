@@ -1,27 +1,44 @@
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
+// routes/importActivity.js
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+import { sequelize } from '../db/index.js';
+import ActivityData from '../models/Activitydata';
 
 const router = express.Router();
-const inputPath = path.join(__dirname, "../data/activity_data_full.json");
 
-// GET Hindi Activity names
-router.get("/", (req, res) => {
+// Fix for __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const dataPath = path.join(__dirname, '../data/activity_data_full.json');
+
+// GET API to import data from local file
+router.get('/import', async (req, res) => {
   try {
-    const rawData = fs.readFileSync(inputPath);
-    const allActivities = JSON.parse(rawData);
 
-    // Only extract id and Hindi name
-    const hindiActivities = allActivities.map((a) => ({
-      id: a.id,
-      ActivityName_Hindi: a.ActivityName_Hindi
+    console.log("hellooo")
+    const rawData = fs.readFileSync(dataPath, 'utf-8');
+    const jsonData = JSON.parse(rawData);
+
+    const formatted = jsonData.map(item => ({
+      english: item.English || '',
+      hindi: item.Hindi || '',
+      telugu: '',
+      marathi: '',
+      date: item.Date,
     }));
 
-    res.json(hindiActivities);
+    await sequelize.sync();
+    await ActivityData.bulkCreate(formatted);
+
+    res.json({ message: `✅ Successfully imported ${formatted.length} records.` });
   } catch (err) {
-    console.error("❌ Failed to read JSON:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error('❌ Error during import:', err);
+    res.status(500).json({ message: 'Server error during import.' });
   }
 });
 
-module.exports = router;
+export default router;
