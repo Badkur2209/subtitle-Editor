@@ -40,5 +40,45 @@ router.get('/import', async (req, res) => {
     res.status(500).json({ message: 'Server error during import.' });
   }
 });
+router.get('/activities', async (req, res) => {
+  try {
+    const allActivities = await ActivityData.findAll();
+    res.json(allActivities);
+  } catch (err) {
+    console.error('❌ Error fetching activities:', err);
+    res.status(500).json({ message: 'Server error while fetching data.' });
+  }
+});
 
+
+router.post('/save', async (req, res) => {
+  try {
+    const { id, translated, targetLang } = req.body;
+
+    if (!id || !translated?.trim() || !targetLang) {
+      return res.status(400).json({ message: 'Missing required fields.' });
+    }
+
+    // Allowed language columns in DB
+    const allowedLangs = ['english', 'hindi', 'telugu', 'marathi'];
+    if (!allowedLangs.includes(targetLang.toLowerCase())) {
+      return res.status(400).json({ message: 'Invalid language key.' });
+    }
+
+    // Find activity record by ID
+    const activity = await ActivityData.findByPk(id);
+    if (!activity) {
+      return res.status(404).json({ message: 'Activity not found.' });
+    }
+
+    // Update translation field
+    activity[targetLang.toLowerCase()] = translated;
+    await activity.save();
+
+    res.json({ message: 'Translation saved successfully.' });
+  } catch (error) {
+    console.error('❌ Error saving translation:', error);
+    res.status(500).json({ message: 'Server error while saving translation.' });
+  }
+});
 export default router;

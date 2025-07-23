@@ -12,6 +12,7 @@ const ActivityData = sequelize.define('activityData', {
   hindi: DataTypes.TEXT,
   telugu: DataTypes.TEXT,
   marathi: DataTypes.TEXT,
+  date: DataTypes.TEXT,
 }, {
   tableName: 'activities',
   timestamps: false,

@@ -18,6 +18,9 @@ import HelpSupport from "./pages/HelpSupport";
 import NotFound from "./pages/NotFound";
 import Translate from "./pages/Translate";
 import TextBased from "./pages/TextBased";
+import PredictionsDaily from "./pages/PredictionsDaily";
+import Predictions10Days from "./pages/Predictions10Days";
+
 
 const queryClient = new QueryClient();
 
@@ -34,6 +37,8 @@ const App = () => (
               <DashboardHeader />
               <main className="flex-1 overflow-auto">
                 <Routes>
+                    <Route path="/Predictions10Days" element={<Predictions10Days />} />
+                    <Route path="/PredictionsDaily" element={<PredictionsDaily />} />
                   <Route path="/" element={<Dashboard />} />
                     <Route path="/text-based" element={<TextBased />} />
                   <Route path="/translate" element={<Translate />} />

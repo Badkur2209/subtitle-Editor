@@ -29,7 +29,10 @@ const navigationItems = [
   { title: "User-info", url: "/user-info", icon: User },
   { title: "VTT files stats", url: "/vtt-files-stats", icon: FileText },
   { title: "Translate", url: "/translate", icon: FileText }, 
-  { title: "Text Based", url: "/text-based", icon: FileText }, 
+  { title: "Activities", url: "/text-based", icon: FileText },
+  { title: "PredictionsDaily", url: "/PredictionsDaily", icon: FileText },  
+  { title: "Predictions10Days", url: "/Predictions10Days", icon: FileText },  
+
 ];
 
 const bottomItems = [

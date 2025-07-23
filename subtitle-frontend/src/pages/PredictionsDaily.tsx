@@ -30,8 +30,7 @@ export default function TextBased() {
   const handleLoad = async () => {
     setLoading(true);
     try {
-      // const response = await fetch("http://localhost:5000/api/textbased/activities");
-      const response = await fetch("https://api.ayushcms.info/api/textbased/activities");
+      const response = await fetch("http://localhost:5000/api/textbased/activities");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -73,9 +72,7 @@ export default function TextBased() {
     };
 
     try {
-      // const res = await fetch("http://localhost:5000/api/textbased/save", {
-      const res = await fetch("https://api.ayushcms.info/api/textbased/save", {
-
+      const res = await fetch("http://localhost:5000/api/textbased/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -159,7 +156,6 @@ export default function TextBased() {
             ))}
           </select>
         </div>
-
         {/* LOAD Button */}
         <button
           className="mt-6 bg-blue-600 text-white px-5 py-2 rounded disabled:bg-gray-400"
@@ -190,12 +186,14 @@ export default function TextBased() {
                    
                   <div className="text-sm font-semibold">
                     {index + 1}.
-                   
+                    {/* {activity.date && (
+                    <div className="text-sm text-gray-500">📅 {formatDate(activity.date)}</div>
+                  )} */}
                   {getSourceLangContent(activity).substring(0, 50)}
                     {getSourceLangContent(activity).length > 50 ? "..." : ""}
                   </div>
-                 {activity.date && (
-                  <div className="text-sm text-gray-500">📅 {activity.date}</div>
+                  {activity.date && (
+                    <div className="text-sm text-gray-500">📅 {formatDate(activity.date)}</div>
                   )}
                 </li>
               ))}
