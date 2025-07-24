@@ -116,7 +116,7 @@ export default function TextBased() {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">Activity Translation Editor</h2>
+      <h2 className="text-xl font-bold mb-4">Daily Prediction Translation Editor</h2>
 
       <div className="flex gap-4 mb-4">
         {/* Source Language */}

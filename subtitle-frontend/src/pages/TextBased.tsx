@@ -30,8 +30,8 @@ export default function TextBased() {
   const handleLoad = async () => {
     setLoading(true);
     try {
-      // const response = await fetch("http://localhost:5000/api/textbased/activities");
-      const response = await fetch("https://api.ayushcms.info/api/textbased/activities");
+      const response = await fetch("http://localhost:5000/api/textbased/activities");
+      // const response = await fetch("https://api.ayushcms.info/api/textbased/activities");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -73,8 +73,8 @@ export default function TextBased() {
     };
 
     try {
-      // const res = await fetch("http://localhost:5000/api/textbased/save", {
-      const res = await fetch("https://api.ayushcms.info/api/textbased/save", {
+      const res = await fetch("http://localhost:5000/api/textbased/save", {
+      // const res = await fetch("https://api.ayushcms.info/api/textbased/save", {
 
         method: "POST",
         headers: { "Content-Type": "application/json" },
