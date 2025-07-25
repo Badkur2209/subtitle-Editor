@@ -31,6 +31,7 @@ export default function TextBased() {
     setLoading(true);
     try {
       const response = await fetch("http://localhost:5000/api/textbased/activities");
+      // const response = await fetch("https://api.ayushcms.info/api/textbased/activities");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -73,6 +74,8 @@ export default function TextBased() {
 
     try {
       const res = await fetch("http://localhost:5000/api/textbased/save", {
+      // const res = await fetch("https://api.ayushcms.info/api/textbased/save", {
+
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -116,7 +119,7 @@ export default function TextBased() {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">Daily Prediction Translation Editor</h2>
+      <h2 className="text-xl font-bold mb-4">prediction daily Translation Editor</h2>
 
       <div className="flex gap-4 mb-4">
         {/* Source Language */}
@@ -156,6 +159,7 @@ export default function TextBased() {
             ))}
           </select>
         </div>
+
         {/* LOAD Button */}
         <button
           className="mt-6 bg-blue-600 text-white px-5 py-2 rounded disabled:bg-gray-400"
@@ -171,7 +175,7 @@ export default function TextBased() {
         <div className="flex gap-6">
           {/* List */}
           <div className="w-1/3">
-            <h3 className="font-semibold mb-2">Activities ({filteredActivities.length})</h3>
+            <h3 className="font-semibold mb-2">predictions ({filteredActivities.length})</h3>
             <ul className="space-y-2 max-h-96 overflow-y-auto">
               {filteredActivities.map((activity, index) => (
                 <li
@@ -186,20 +190,18 @@ export default function TextBased() {
                    
                   <div className="text-sm font-semibold">
                     {index + 1}.
-                    {/* {activity.date && (
-                    <div className="text-sm text-gray-500">📅 {formatDate(activity.date)}</div>
-                  )} */}
+                   
                   {getSourceLangContent(activity).substring(0, 50)}
                     {getSourceLangContent(activity).length > 50 ? "..." : ""}
                   </div>
-                  {activity.date && (
-                    <div className="text-sm text-gray-500">📅 {formatDate(activity.date)}</div>
-                  )}
+                 {/* {activity.date && (
+                  <div className="text-sm text-gray-500">📅 {activity.date}</div>
+                  )} */}
                 </li>
               ))}
             </ul>
             {filteredActivities.length === 0 && (
-              <p className="text-gray-500 text-sm">No activities found for the selected source language.</p>
+              <p className="text-gray-500 text-sm">No precdiction found for the selected source language.</p>
             )}
           </div>
           
@@ -234,7 +236,7 @@ export default function TextBased() {
               </div>
             ) : (
               <div className="text-center text-gray-500 py-20">
-                <p>Select an activity from the list to start translating</p>
+                <p>Select an precdiction from the list to start translating</p>
               </div>
             )}
           </div>

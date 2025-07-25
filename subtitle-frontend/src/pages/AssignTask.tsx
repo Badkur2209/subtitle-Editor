@@ -150,15 +150,7 @@ useEffect(() => {
   />
 </div>
 
-{/* Assign video count to translator (editable) */}
-<div className="space-y-2">
-  <Label htmlFor="assignVideoCount">Assign Video Count</Label>
-  <Input
-    id="assignVideoCount"
-    placeholder="10"
-    {...register("assignVideoCount")}
-  />
-</div>
+
 
               {/* From Date */}
               <div className="space-y-2">
@@ -215,7 +207,16 @@ useEffect(() => {
                   </PopoverContent>
                 </Popover>
               </div>
-
+              
+              {/* Assign video count to translator (editable) */}
+<div className="space-y-2">
+  <Label htmlFor="assignVideoCount">Assign Video Count</Label>
+  <Input
+    id="assignVideoCount"
+    placeholder="10"
+    {...register("assignVideoCount")}
+  />
+</div>
               {/* Default Language */}
               <div className="space-y-2">
                 <Label htmlFor="defaultLanguage">Default Language</Label>
