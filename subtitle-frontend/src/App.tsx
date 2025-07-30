@@ -20,6 +20,9 @@ import Translate from "./pages/Translate";
 import TextBased from "./pages/TextBased";
 import PredictionsDaily from "./pages/PredictionsDaily";
 import Predictions10Days from "./pages/Predictions10Days";
+import UserManagement from './pages/UserManagement';
+import UpdateUserStatus from './pages/UpdateUserStatus';
+import Activities from './pages/Activities';
 
 
 const queryClient = new QueryClient();
@@ -37,10 +40,14 @@ const App = () => (
               <DashboardHeader />
               <main className="flex-1 overflow-auto">
                 <Routes>
+                  <Route path="/UpdateUserStatus" element={<UpdateUserStatus />} />
+                  <Route path="/UserManagement" element={<UserManagement />} />
                     <Route path="/Predictions10Days" element={<Predictions10Days />} />
                     <Route path="/PredictionsDaily" element={<PredictionsDaily />} />
                   <Route path="/" element={<Dashboard />} />
                     <Route path="/text-based" element={<TextBased />} />
+                    <Route path="/activities" element={<Activities />} />
+
                   <Route path="/translate" element={<Translate />} />
                   <Route path="/assign-task" element={<AssignTask />} />
                   <Route path="/stats-youtube" element={<StatsYoutube />} />

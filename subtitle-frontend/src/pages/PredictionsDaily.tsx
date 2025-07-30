@@ -12,25 +12,29 @@ function getPlainLangName(langKey) {
 }
 
 const LANG_KEYS = [
-  { label: "English", key: "ActivityName_English" },
-  { label: "Hindi", key: "ActivityName_Hindi" },
-  { label: "Telugu", key: "ActivityName_Telugu" },
-  { label: "Marathi", key: "ActivityName_Marathi" },
+  { label: "English", key: "english" }, // Represents all English columns
+  { label: "Hindi", key: "hi_1" },
+  { label: "Telugu", key: "te_1" },
+  { label: "Marathi", key: "mr_1" },
 ];
+const ENGLISH_COLUMNS = ["en_1", "en_2", "en_3", "en_4"];
 
-export default function TextBased() {
+
+export default function PredictionsDaily() {
   const [activities, setActivities] = useState([]);
   const [selected, setSelected] = useState(null);
   const [translatedText, setTranslatedText] = useState("");
-  const [sourceLangKey, setSourceLangKey] = useState("ActivityName_English");
-  const [targetLangKey, setTargetLangKey] = useState("ActivityName_Hindi");
+  const [sourceLangKey, setSourceLangKey] = useState("english");
+  const [targetLangKey, setTargetLangKey] = useState("hindi");
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedLink, setSelectedLink] = useState("");
 
   const handleLoad = async () => {
     setLoading(true);
-    try {
-      const response = await fetch("http://localhost:5000/api/textbased/activities");
+    try { 
+      const response = await fetch("http://localhost:5000/api/predictions/predictions");
+     
       // const response = await fetch("https://api.ayushcms.info/api/textbased/activities");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -46,6 +50,13 @@ export default function TextBased() {
       setLoading(false);
     }
   };
+  useEffect(() => {
+  if (selected && loaded) {
+    // For translation text, show the content of the targetLangKey in the selected activity
+    const translation = getLangContent(selected, targetLangKey);
+    setTranslatedText(translation);
+  }
+}, [targetLangKey, selected, loaded]);
 
   useEffect(() => {
     if (selected && loaded) {
@@ -58,6 +69,22 @@ export default function TextBased() {
     setSelected(activity);
     const targetKey = getContentKeyFromActivityNameKey(targetLangKey);
     setTranslatedText(activity[targetKey] || "");
+    const youtubeId = extractYouTubeId(activity.url);
+    setSelectedLink(youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : "");
+  };
+
+   // Extract YouTube Id helper
+  const extractYouTubeId = (url) => {
+    if (!url) return null;
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/live\/([^&\n?#]+)/,
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
   };
 
   const handleSave = async () => {
@@ -73,8 +100,8 @@ export default function TextBased() {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/api/textbased/save", {
-      // const res = await fetch("https://api.ayushcms.info/api/textbased/save", {
+      const res = await fetch("http://localhost:5000/api/predictions/savePrediction", {
+      // const res = await fetch("https://api.ayushcms.info/api/predictions/savePrediction", {
 
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -102,20 +129,57 @@ export default function TextBased() {
     }
   };
 
-  const getSourceLangContent = (activity) => {
-    const sourceKey = getContentKeyFromActivityNameKey(sourceLangKey);
-    return activity[sourceKey] || "";
-  };
+  // const getSourceLangContent = (activity) => {
+  //   const sourceKey = getContentKeyFromActivityNameKey(sourceLangKey);
+  //   return activity[sourceKey] || "";
+  // };
 
-  const filteredActivities = activities.filter((a) => {
-    const sourceKey = getContentKeyFromActivityNameKey(sourceLangKey);
-    return a[sourceKey] && a[sourceKey].trim() !== "";
-  });
+    //updated getSourceLangContent to handle multiple English columns
+    const getSourceLangContent = (activity, langKey) => {
+  if (langKey === "english") {
+    return ENGLISH_COLUMNS
+      .map(col => activity[col])
+      .filter(text => text && text.trim() !== "")
+      .join(" | ");  // or use "\n" or any separator you prefer
+  } else {
+    return activity[langKey] || "";
+  }
+};
+
+
+
+  // const filteredActivities = activities.filter((a) => {
+  //   const sourceKey = getContentKeyFromActivityNameKey(sourceLangKey);
+  //   return a[sourceKey] && a[sourceKey].trim() !== "";
+  // });
+  //updated filteredActivities to handle multiple English columns
+  const filteredActivities = activities.filter(activity => {
+  if (sourceLangKey === "english") {
+    // At least one English column has data
+    return ENGLISH_COLUMNS.some(col => activity[col] && activity[col].trim() !== "");
+  } else {
+    return activity[sourceLangKey] && activity[sourceLangKey].trim() !== "";
+  }
+});
+
 
   const formatDate = (ms) => {
     const date = new Date(Number(ms));
     return date.toLocaleDateString("en-IN");
   };
+
+ const getLangContent = (activity, langKey) => {
+  if (langKey === "english") {
+    return ENGLISH_COLUMNS
+      .map(col => activity[col])
+      .filter(text => text && text.trim() !== "")
+      .join(" | ");  // or newline '\n', whichever UI style you want
+  } else {
+    return activity[langKey] || "";
+  }
+};
+
+
 
   return (
     <div className="p-6">
@@ -159,6 +223,16 @@ export default function TextBased() {
             ))}
           </select>
         </div>
+        {/* Todays Date */}
+<div>
+  <label className="block font-medium ">Today's Date</label>
+  <input
+    type="date"
+    className="p-2 border rounded"
+    // value={toDate}
+    // onChange={(e) => setToDate(e.target.value)}
+  />
+</div>
 
         {/* LOAD Button */}
         <button
@@ -170,6 +244,21 @@ export default function TextBased() {
         </button>
       </div>
 
+             {/* YouTube Embed */}
+      {selectedLink && (
+        <div className="mb-4">
+          <h3 className="font-semibold mb-2">Related Video</h3>
+          {/* disabled related video in iframe */}
+          <iframe
+             className="w-full h-64 rounded"
+              src={`https://www.youtube.com/embed/${extractYouTubeId(selectedLink)}?rel=0`}
+                    allowFullScreen
+              title="Related Video"
+                      />
+
+        </div>
+      )}
+
       {/* Only show this if loaded */}
       {loaded && (
         <div className="flex gap-6">
@@ -177,7 +266,7 @@ export default function TextBased() {
           <div className="w-1/3">
             <h3 className="font-semibold mb-2">predictions ({filteredActivities.length})</h3>
             <ul className="space-y-2 max-h-96 overflow-y-auto">
-              {filteredActivities.map((activity, index) => (
+              {/* {filteredActivities.map((activity, index) => (
                 <li
                 
                   key={activity.id}
@@ -196,9 +285,24 @@ export default function TextBased() {
                   </div>
                  {/* {activity.date && (
                   <div className="text-sm text-gray-500">📅 {activity.date}</div>
-                  )} */}
-                </li>
-              ))}
+                  )}</li> */}
+                
+              {/* ))} */} 
+              
+{filteredActivities.map((activity, index) => (
+  <li
+    key={activity.id}
+    className={`p-2 border rounded cursor-pointer ${
+      selected?.id === activity.id ? "bg-blue-100" : "hover:bg-gray-100"
+    }`}
+    onClick={() => handleSelectActivity(activity)}
+  >
+    <div className="text-sm font-semibold">
+      {index + 1}. {getSourceLangContent(activity, sourceLangKey).substring(0, 50)}
+      {getSourceLangContent(activity, sourceLangKey).length > 50 ? "..." : ""}
+    </div>
+  </li>
+))}
             </ul>
             {filteredActivities.length === 0 && (
               <p className="text-gray-500 text-sm">No precdiction found for the selected source language.</p>
@@ -217,7 +321,7 @@ export default function TextBased() {
                   <textarea
                     className="w-full h-80 p-2 border rounded bg-gray-100"
                     readOnly
-                    value={getSourceLangContent(selected)}
+                   value={getLangContent(selected, sourceLangKey)}
                   />
                 </div>
                 
@@ -229,7 +333,7 @@ export default function TextBased() {
                   <textarea
                     className="w-full h-80 p-2 border rounded"
                     value={translatedText}
-                    onChange={(e) => setTranslatedText(e.target.value)}
+                  onChange={(e) => setTranslatedText(e.target.value)}
                     placeholder={`Enter ${getPlainLangName(targetLangKey)} translation...`}
                   />
                 </div>

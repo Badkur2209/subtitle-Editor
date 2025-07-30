@@ -209,14 +209,7 @@ useEffect(() => {
               </div>
               
               {/* Assign video count to translator (editable) */}
-<div className="space-y-2">
-  <Label htmlFor="assignVideoCount">Assign Video Count</Label>
-  <Input
-    id="assignVideoCount"
-    placeholder="10"
-    {...register("assignVideoCount")}
-  />
-</div>
+
               {/* Default Language */}
               <div className="space-y-2">
                 <Label htmlFor="defaultLanguage">Default Language</Label>
@@ -251,12 +244,29 @@ useEffect(() => {
                   />
                 </div>
               </div>
-            </div>
-
+            </div>      
+            <div className="space-y-2">
+  <Label htmlFor="assignVideoCount">Assign Video Count</Label>
+  <Input
+    id="assignVideoCount"
+    placeholder="10"
+    {...register("assignVideoCount")}
+  />
+</div>
+                 {/* Translate Language */}
+              <div className="space-y-2">
+                <Label htmlFor="assigntranslator">assign translator </Label>
+                <Input
+                  id="assigntranslator"
+                  placeholder="select translator"
+                  // defaultValue="400"
+                  {...register("translateLanguage")}
+                />
+              </div>
             {/* Assign Button */}
             <div className="flex justify-end">
               <Button type="submit" className="bg-primary hover:bg-primary/90 px-8">
-                Assign
+                UPDATE
               </Button>
             </div>
           </form>
@@ -310,12 +320,7 @@ useEffect(() => {
                   </div>
                 </div>
 
-                <Button
-                  onClick={() => handleAssignTranslator(translator.id)}
-                  className="bg-purple-stat hover:bg-purple-stat/90 text-white px-6"
-                >
-                  Assign
-                </Button>
+              
               </div>
             ))}
           </div>

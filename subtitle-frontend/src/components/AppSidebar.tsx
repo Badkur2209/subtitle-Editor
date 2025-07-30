@@ -21,19 +21,21 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { title } from "process";
 
 const navigationItems = [
   { title: "Overview", url: "/", icon: LayoutDashboard },
-  { title: "Activities", url: "/text-based", icon: FileText },
-   { title: "PredictionsDaily", url: "/PredictionsDaily", icon: FileText },  
+  { title: "Activities", url: "/Activities", icon: FileText },
+  { title: "PredictionsDaily", url: "/PredictionsDaily", icon: FileText },  
   { title: "Predictions10Days", url: "/Predictions10Days", icon: FileText },
-  { title: "Assign Task", url: "/assign-task", icon: UserPlus },
+  { title: "Task Status", url: "/UserManagement", icon: FileText },
+  { title: "Update User Status", url: "/UpdateUserStatus", icon: FileText },
+  
+  { title: "Task Assignment", url: "/assign-task", icon: UserPlus },
   { title: "Stats Youtube", url: "/stats-youtube", icon: BarChart3 },
   { title: "User-info", url: "/user-info", icon: User },
   { title: "VTT files stats", url: "/vtt-files-stats", icon: FileText },
-  { title: "Translate", url: "/translate", icon: FileText }, 
-  
- 
+  { title: "Translate", url: "/translate", icon: FileText },
 ];
 
 const bottomItems = [

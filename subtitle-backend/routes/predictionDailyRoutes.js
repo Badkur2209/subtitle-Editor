@@ -21,10 +21,15 @@ router.post('/savePrediction', async (req, res) => {
     const column = targetLang.toLowerCase(); // e.g., 'hindi' -> 'hi_2'
 
     const langColumnMap = {
+      fromdate: 'fromdate',
       english: 'en_1',
-      hindi: 'en_2',
-      telugu: 'en_3',
-      marathi: 'en_4',
+      english2: 'en_2',
+      english3: 'en_3',
+      english4: 'en_4',
+
+      hindi: 'hi_1',
+      telugu: 'hi_1',
+      marathi: 'mr_1',
     };
 
     const columnName = langColumnMap[targetLang.toLowerCase()];
