@@ -7,7 +7,14 @@ const sequelize = new Sequelize('SUBTITLE_EDITOR', 'postgres', '14All', {
   port: 5432,
   logging: false,
 });
+// import { Sequelize } from 'sequelize';
 
+// const sequelize = new Sequelize('ayushcms', 'postgres', 'Tathaastu@2020', {
+//   host: 'localhost',
+//   dialect: 'postgres',
+//   port: 5432,
+//   logging: false,
+// });
 // Test DB connection
 export const testDbConnection = async () => {
   try {

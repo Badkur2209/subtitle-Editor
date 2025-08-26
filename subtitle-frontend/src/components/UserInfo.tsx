@@ -1,48 +1,85 @@
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { User, Crown, Languages } from "lucide-react";
 
-export function UserInfo() {
-  return (
-    <Card className="p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <User className="w-5 h-5 text-blue-600" />
-        <h3 className="text-lg font-semibold">User Info</h3>
-      </div>
-      
-      <div className="text-center space-y-4">
-        {/* Avatar */}
-        <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto flex items-center justify-center">
-          <User className="w-8 h-8 text-gray-400" />
-        </div>
-        
-        {/* User Details */}
-        <div>
-          <h4 className="font-semibold text-base">Neeraj Pandey</h4>
-          <p className="text-sm text-muted-foreground">Neeraj Pandey</p>
-        </div>
-        
-        {/* Plan and Usage */}
-        <div className="space-y-4 pt-4">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Plan</span>
-            <span className="text-sm font-medium">Premium</span>
-          </div>
-          
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Files Used</span>
-            <span className="text-sm font-medium">47/100</span>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Storage</span>
-              <span className="text-sm font-medium">2.4GB/10GB</span>
-            </div>
-            <Progress value={24} className="h-2" />
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-}
+export function UserInfo() {}
+// const { user } = useAuth();
+
+//   const getRoleColor = (role: string) => {
+//     switch (role) {
+//       case "admin":
+//         return "bg-red-100 text-red-800 border-red-200";
+//       case "editor":
+//         return "bg-blue-100 text-blue-800 border-blue-200";
+//       case "translator":
+//         return "bg-green-100 text-green-800 border-green-200";
+//       case "reviewer":
+//         return "bg-purple-100 text-purple-800 border-purple-200";
+//       case "assigner":
+//         return "bg-orange-100 text-orange-800 border-orange-200";
+//       case "uploader":
+//         return "bg-yellow-100 text-yellow-800 border-yellow-200";
+//       default:
+//         return "bg-gray-100 text-gray-800 border-gray-200";
+//     }
+//   };
+
+//   return (
+//     <Card>
+//       <CardHeader className="pb-3">
+//         <CardTitle className="text-lg flex items-center gap-2">
+//           <User className="h-5 w-5" />
+//           User Profile
+//         </CardTitle>
+//       </CardHeader>
+//       <CardContent className="space-y-4">
+//         <div>
+//           <p className="text-sm text-gray-600">Name</p>
+//           <p className="font-medium">{user?.name}</p>
+//         </div>
+
+//         <div>
+//           <p className="text-sm text-gray-600">Username</p>
+//           <p className="font-medium">@{user?.username}</p>
+//         </div>
+
+//         <div>
+//           <p className="text-sm text-gray-600 flex items-center gap-1">
+//             <Crown className="h-4 w-4" />
+//             Role
+//           </p>
+//           <Badge className={`mt-1 ${getRoleColor(user?.role || "")}`}>
+//             {user?.role?.toUpperCase()}
+//           </Badge>
+//         </div>
+
+//         <div>
+//           <p className="text-sm text-gray-600 flex items-center gap-1 mb-2">
+//             <Languages className="h-4 w-4" />
+//             Language Pairs
+//           </p>
+//           <div className="flex flex-wrap gap-1">
+//             {user?.lang_pairs?.length ? (
+//               user.lang_pairs.map((pair: string, index: number) => (
+//                 <Badge key={index} variant="outline" className="text-xs">
+//                   {pair.replace("_", " → ").toUpperCase()}
+//                 </Badge>
+//               ))
+//             ) : (
+//               <span className="text-sm text-gray-500">
+//                 No language pairs assigned
+//               </span>
+//             )}
+//           </div>
+//         </div>
+
+//         <div className="pt-2 border-t">
+//           <p className="text-xs text-gray-500">
+//             Account created: {new Date().toLocaleDateString()}
+//           </p>
+//         </div>
+//       </CardContent>
+//     </Card>
+//   );
+// }
