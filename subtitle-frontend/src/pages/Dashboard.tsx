@@ -1,23 +1,41 @@
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, LogOut } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { RecentActivity } from "@/components/RecentActivity";
 import { UserInfo } from "@/components/UserInfo";
 import { VTTFilesTable } from "@/components/VTTFilesTable";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Dashboard() {
+  const { user, logout } = useAuth();
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Subtitle Dashboard</h1>
-          <p className="text-gray-600">Manage and analyze your subtitle files with powerful insights</p>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Subtitle Dashboard
+          </h1>
+          <p className="text-gray-600">
+            Welcome back, {user?.name}! Manage and analyze your subtitle files
+            with powerful insights
+          </p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-          <Plus className="w-4 h-4 mr-2" />
-          Create New Subtitle
-        </Button>
+        <div className="flex gap-3">
+          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Plus className="w-4 h-4 mr-2" />
+            Create New Subtitle
+          </Button>
+          <Button
+            variant="outline"
+            onClick={logout}
+            className="text-red-600 border-red-200 hover:bg-red-50"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
