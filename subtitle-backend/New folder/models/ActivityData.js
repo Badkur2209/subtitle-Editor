@@ -41,7 +41,8 @@ const ActivityData = sequelize.define(
 
     Time: { type: DataTypes.TEXT, field: "Time" },
 
-    timeWithSpace: { type: DataTypes.TEXT, field: "Time " }, 
+    timeWithSpace: { type: DataTypes.TEXT, field: "Time " }, // handles the "Time " column
+
     Time2: { type: DataTypes.CHAR, field: "Time2" },
 
     Tithi: DataTypes.TEXT,

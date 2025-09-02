@@ -1,3 +1,4 @@
+// PredictionDaily.tsx
 import React, { useEffect, useState, useMemo } from "react";
 
 const LANG_KEYS = [
@@ -21,15 +22,18 @@ function getPlainLangName(langKey) {
   return lang ? lang.label : langKey;
 }
 
-// // Format date string in format "DD-MM-YY"
-// const formatDate = (dateString) => {
-//   if (!dateString) return "";
-//   const [day, month, year] = dateString.split("-");
-//   const fullYear = `20${year}`;
-//   const date = new Date(`${fullYear}-${month}-${day}`);
-//   return date.toLocaleDateString("en-IN");
-// };
-// Format date string
+const getStatusColor = (status) => {
+  switch (status) {
+    case "completed":
+      return "bg-green-500";
+    case "working":
+      return "bg-yellow-500";
+    case "pending":
+    default:
+      return "bg-red-500";
+  }
+};
+
 const formatDate = (dateString) => {
   if (!dateString) return "";
   try {
@@ -53,21 +57,6 @@ const extractYouTubeId = (url) => {
   return null;
 };
 
-interface Activity {
-  id: number;
-  fromdate?: string;
-  lagna_rasi?: string;
-  lrname?: string;
-  url?: string;
-  [key: string]: any;
-}
-
-interface LanguageSetItem {
-  activity: Activity;
-  primaryLangKey: string; // en_1, hi_1, etc. (first column of each language)
-  targetLangKey: string; // the corresponding target language first column
-}
-
 export default function PredictionsDaily() {
   const [activities, setActivities] = useState([]);
   const [selectedLanguageSet, setSelectedLanguageSet] = useState(null);
@@ -79,13 +68,7 @@ export default function PredictionsDaily() {
   const [filterDate, setFilterDate] = useState("");
   const [filterLagna, setFilterLagna] = useState("");
 
-  // Store translations for all 4 columns
-  const [translationTexts, setTranslationTexts] = useState({
-    col1: "",
-    col2: "",
-    col3: "",
-    col4: "",
-  });
+  const [translationTexts, setTranslationTexts] = useState({});
 
   const LAGNA_OPTIONS = [
     "Mesha",
@@ -102,7 +85,6 @@ export default function PredictionsDaily() {
     "Meen",
   ];
 
-  // Load activities from backend
   const handleLoad = async () => {
     setLoading(true);
     try {
@@ -125,13 +107,11 @@ export default function PredictionsDaily() {
     }
   };
 
-  // Create list showing only first column of each language (en_1, hi_1, etc.)
   const languageSetList = useMemo(() => {
     const list = [];
     const filterDateObj = filterDate ? new Date(filterDate) : null;
 
     activities.forEach((activity) => {
-      // Apply date filter
       if (filterDateObj && activity.fromdate) {
         const parts = activity.fromdate.split("-");
         if (parts.length === 3) {
@@ -147,7 +127,6 @@ export default function PredictionsDaily() {
         return;
       }
 
-      // Apply lagna filter
       if (
         filterLagna &&
         (activity.lagna_rasi || "").toLowerCase() !== filterLagna.toLowerCase()
@@ -155,9 +134,8 @@ export default function PredictionsDaily() {
         return;
       }
 
-      // Add entry for each language that has content in first column
       LANG_KEYS.forEach((lang) => {
-        const primaryCol = lang.key; // en_1, hi_1, etc.
+        const primaryCol = lang.key;
         if (activity[primaryCol] && activity[primaryCol].trim() !== "") {
           list.push({
             activity,
@@ -172,20 +150,20 @@ export default function PredictionsDaily() {
     return list;
   }, [activities, sourceLangKey, targetLangKey, filterDate, filterLagna]);
 
-  // Handle selection of language set
   const handleSelectLanguageSet = (item) => {
     setSelectedLanguageSet(item);
 
-    // Load all translation texts for the target language
+    const sourceCols = LANGUAGE_COLUMNS_MAP[sourceLangKey];
     const targetCols = LANGUAGE_COLUMNS_MAP[item.targetLangKey];
-    if (targetCols) {
-      setTranslationTexts({
-        col1: item.activity[targetCols[0]] || "",
-        col2: item.activity[targetCols[1]] || "",
-        col3: item.activity[targetCols[2]] || "",
-        col4: item.activity[targetCols[3]] || "",
-      });
-    }
+
+    const newTranslations = {};
+    sourceCols.forEach((col, idx) => {
+      if (item.activity[col] && item.activity[col].trim() !== "") {
+        newTranslations[`col${idx + 1}`] = item.activity[targetCols[idx]] || "";
+      }
+    });
+
+    setTranslationTexts(newTranslations);
 
     const youtubeId = extractYouTubeId(item.activity.url);
     setSelectedLink(
@@ -193,26 +171,29 @@ export default function PredictionsDaily() {
     );
   };
 
-  // Update translations when target language changes
   useEffect(() => {
     if (selectedLanguageSet) {
+      const sourceCols = LANGUAGE_COLUMNS_MAP[sourceLangKey];
       const targetCols = LANGUAGE_COLUMNS_MAP[targetLangKey];
-      if (targetCols) {
-        setTranslationTexts({
-          col1: selectedLanguageSet.activity[targetCols[0]] || "",
-          col2: selectedLanguageSet.activity[targetCols[1]] || "",
-          col3: selectedLanguageSet.activity[targetCols[2]] || "",
-          col4: selectedLanguageSet.activity[targetCols[3]] || "",
-        });
-      }
-      // Update the target in selected item
+
+      const updatedTranslations = {};
+      sourceCols.forEach((col, idx) => {
+        if (
+          selectedLanguageSet.activity[col] &&
+          selectedLanguageSet.activity[col].trim() !== ""
+        ) {
+          updatedTranslations[`col${idx + 1}`] =
+            selectedLanguageSet.activity[targetCols[idx]] || "";
+        }
+      });
+
+      setTranslationTexts(updatedTranslations);
       setSelectedLanguageSet((prev) =>
         prev ? { ...prev, targetLangKey } : null
       );
     }
-  }, [targetLangKey]);
+  }, [targetLangKey, sourceLangKey]);
 
-  // Save all translations
   const handleSaveAll = async () => {
     if (!selectedLanguageSet) {
       alert("Please select an item first.");
@@ -226,31 +207,28 @@ export default function PredictionsDaily() {
     }
 
     try {
-      // Save all 4 translations
-      const savePromises = [
-        { col: targetCols[0], text: translationTexts.col1 },
-        { col: targetCols[1], text: translationTexts.col2 },
-        { col: targetCols[2], text: translationTexts.col3 },
-        { col: targetCols[3], text: translationTexts.col4 },
-      ]
-        .filter((item) => item.text.trim()) // Only save non-empty translations
-        .map((item) =>
-          fetch("http://localhost:5000/api/predictions/savePrediction", {
-            // fetch("https://api.ayushcms.info/api/predictions/savePrediction", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              id: selectedLanguageSet.activity.id,
-              translated: item.text,
-              targetLang: item.col,
-            }),
-          })
-        );
+      const savePromises = Object.entries(translationTexts)
+        // .filter(([_, text]) => text.trim())
+        .map(([key, text]) => {
+          const index = parseInt(key.replace("col", ""), 10) - 1;
+          return fetch(
+            "http://localhost:5000/api/predictions/savePrediction",
+            // "https://api.ayushcms.info/api/predictions/savePrediction",
+
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: selectedLanguageSet.activity.id,
+                translated: text,
+                targetLang: targetCols[index],
+              }),
+            }
+          );
+        });
 
       await Promise.all(savePromises);
       alert("✅ All translations saved successfully!");
-
-      // Refresh data
       await handleLoad();
     } catch (err) {
       console.error("❌ Save failed:", err);
@@ -264,6 +242,7 @@ export default function PredictionsDaily() {
         Prediction Daily Translation Editor
       </h2>
 
+      {/* Filters and Load */}
       <div className="flex gap-4 mb-4">
         {/* Source Language */}
         <div>
@@ -336,7 +315,6 @@ export default function PredictionsDaily() {
           </select>
         </div>
 
-        {/* Load Button */}
         <button
           className="mt-6 bg-blue-600 text-white px-5 py-2 rounded disabled:bg-gray-400"
           onClick={handleLoad}
@@ -365,7 +343,7 @@ export default function PredictionsDaily() {
       {/* Main Content */}
       {loaded && (
         <div className="flex gap-6">
-          {/* List */}
+          {/* Left Panel */}
           <div className="w-1/3">
             <h3 className="font-semibold mb-2">
               Language Sets ({languageSetList.length})
@@ -389,7 +367,15 @@ export default function PredictionsDaily() {
                   tabIndex={0}
                 >
                   <div className="text-sm font-semibold flex items-center gap-3 flex-wrap">
-                    <span>{idx + 1}.</span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`w-3 h-3 rounded-full ${getStatusColor(
+                          item.activity.status
+                        )}`}
+                      />
+                      <span>{idx + 1}.</span>
+                    </div>
+
                     {item.activity.fromdate && (
                       <span className="text-gray-500 text-sm">
                         📅 {formatDate(item.activity.fromdate)}
@@ -406,7 +392,10 @@ export default function PredictionsDaily() {
                       </span>
                     )}
                     <span>
-                      {item.activity[item.primaryLangKey]}
+                      {item.activity[item.primaryLangKey]?.substring(0, 40)}
+                      {(item.activity[item.primaryLangKey]?.length || 0) > 40
+                        ? "..."
+                        : ""}
                       <small className="ml-1 text-xs text-gray-400">
                         ({item.primaryLangKey})
                       </small>
@@ -417,127 +406,58 @@ export default function PredictionsDaily() {
             </ul>
           </div>
 
-          {/* Multi-Row Editor */}
+          {/* Editor */}
           <div className="w-2/3">
             {selectedLanguageSet ? (
               <div>
                 <div className="mb-4 p-3 bg-gray-50 rounded text-sm text-gray-600">
                   <strong>ID:</strong> {selectedLanguageSet.activity.id} |
+                  <strong> Status:</strong>{" "}
+                  {selectedLanguageSet.activity.status} |
                   <strong> Language Pair:</strong>{" "}
                   {getPlainLangName(sourceLangKey)} →{" "}
                   {getPlainLangName(targetLangKey)}
                 </div>
 
-                {/* Multi-row translation grid */}
+                {/* Dynamic Translation Rows */}
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4 font-semibold text-lg border-b pb-2">
                     <div>Original ({getPlainLangName(sourceLangKey)})</div>
                     <div>Translation ({getPlainLangName(targetLangKey)})</div>
                   </div>
 
-                  {/* Row 1 */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-gray-50 rounded">
-                      <div className="text-sm text-gray-500 mb-1">Column 1</div>
-                      <div>
-                        {selectedLanguageSet.activity[
-                          LANGUAGE_COLUMNS_MAP[sourceLangKey][0]
-                        ] || ""}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">Column 1</div>
-                      <textarea
-                        className="w-full h-20 p-2 border rounded"
-                        value={translationTexts.col1}
-                        onChange={(e) =>
-                          setTranslationTexts((prev) => ({
-                            ...prev,
-                            col1: e.target.value,
-                          }))
-                        }
-                        placeholder="Enter translation..."
-                      />
-                    </div>
-                  </div>
+                  {LANGUAGE_COLUMNS_MAP[sourceLangKey].map((colKey, index) => {
+                    const originalText = selectedLanguageSet.activity[colKey];
+                    if (!originalText || originalText.trim() === "")
+                      return null;
 
-                  {/* Row 2 */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-gray-50 rounded">
-                      <div className="text-sm text-gray-500 mb-1">Column 2</div>
-                      <div>
-                        {selectedLanguageSet.activity[
-                          LANGUAGE_COLUMNS_MAP[sourceLangKey][1]
-                        ] || ""}
+                    return (
+                      <div key={colKey} className="grid grid-cols-2 gap-4">
+                        <div className="p-3 bg-gray-50 rounded">
+                          <div className="text-sm text-gray-500 mb-1">
+                            Column {index + 1}
+                          </div>
+                          <div>{originalText}</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-500 mb-1">
+                            Column {index + 1}
+                          </div>
+                          <textarea
+                            className="w-full h-20 p-2 border rounded"
+                            value={translationTexts[`col${index + 1}`] || ""}
+                            onChange={(e) =>
+                              setTranslationTexts((prev) => ({
+                                ...prev,
+                                [`col${index + 1}`]: e.target.value,
+                              }))
+                            }
+                            placeholder="Enter translation..."
+                          />
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">Column 2</div>
-                      <textarea
-                        className="w-full h-20 p-2 border rounded"
-                        value={translationTexts.col2}
-                        onChange={(e) =>
-                          setTranslationTexts((prev) => ({
-                            ...prev,
-                            col2: e.target.value,
-                          }))
-                        }
-                        placeholder="Enter translation..."
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 3 */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-gray-50 rounded">
-                      <div className="text-sm text-gray-500 mb-1">Column 3</div>
-                      <div>
-                        {selectedLanguageSet.activity[
-                          LANGUAGE_COLUMNS_MAP[sourceLangKey][2]
-                        ] || ""}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">Column 3</div>
-                      <textarea
-                        className="w-full h-20 p-2 border rounded"
-                        value={translationTexts.col3}
-                        onChange={(e) =>
-                          setTranslationTexts((prev) => ({
-                            ...prev,
-                            col3: e.target.value,
-                          }))
-                        }
-                        placeholder="Enter translation..."
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 4 */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-gray-50 rounded">
-                      <div className="text-sm text-gray-500 mb-1">Column 4</div>
-                      <div>
-                        {selectedLanguageSet.activity[
-                          LANGUAGE_COLUMNS_MAP[sourceLangKey][3]
-                        ] || ""}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">Column 4</div>
-                      <textarea
-                        className="w-full h-20 p-2 border rounded"
-                        value={translationTexts.col4}
-                        onChange={(e) =>
-                          setTranslationTexts((prev) => ({
-                            ...prev,
-                            col4: e.target.value,
-                          }))
-                        }
-                        placeholder="Enter translation..."
-                      />
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : (
@@ -549,7 +469,6 @@ export default function PredictionsDaily() {
         </div>
       )}
 
-      {/* Save Button */}
       {loaded && selectedLanguageSet && (
         <div className="mt-4">
           <button

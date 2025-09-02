@@ -1,3 +1,5 @@
+// // models/predictionsData.js
+
 // models/predictionsData.js
 import { DataTypes } from "sequelize";
 import { sequelize } from "../db/index.js";
@@ -10,6 +12,7 @@ const PredictionDaily = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
+
     type: DataTypes.TEXT,
     fromdate: DataTypes.TEXT,
     todate: DataTypes.TEXT,

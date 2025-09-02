@@ -49,15 +49,19 @@ export default function Translate() {
   // In your apiCall function, update the base URL:
   const apiCall = async (url: string, options: RequestInit = {}) => {
     const token = localStorage.getItem("token");
-    const response = await fetch(`http://localhost:5000/api/subtitles${url}`, {
-      // ← localhost:5000
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
-      },
-    });
+    const response = await fetch(
+      `http://localhost:5000/api/subtitles${url}`,
+
+      {
+        // ← localhost:5000
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          ...options.headers,
+        },
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`API call failed: ${response.statusText}`);

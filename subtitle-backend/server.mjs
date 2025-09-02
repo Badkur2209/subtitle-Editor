@@ -7,25 +7,33 @@ import prediction10DaysRoutes from "./routes/prediction10DaysRoute.js";
 import authRoutes from "./routes/authRoutes.js";
 import userInfoRouter from "./routes/userInfo.js";
 import subtitleRoutes from "./routes/subtitleRoutes.js";
+import assignActivitiesRoute from "./routes/assignActivities.js"; // Use import instead of require
 
 const app = express();
 
-// Test database connection before starting server
-await testDbConnection();
+(async () => {
+  try {
+    await testDbConnection();
 
-// Middlewares first
-app.use(cors());
-app.use(express.json());
+    // Middleware
+    app.use(cors());
+    app.use(express.json());
 
-// Then routes
-app.use("/api/users", userInfoRouter);
-app.use("/api/auth", authRoutes);
-app.use("/api/subtitles", subtitleRoutes);
-app.use("/api/predictions", prediction10DaysRoutes);
-app.use("/api/predictions", predictionDailyRoutes);
-app.use("/api/textbased", textbasedRoutes);
+    // Routes
+    app.use("/api/users", userInfoRouter);
+    app.use("/api/auth", authRoutes);
+    app.use("/api/subtitles", subtitleRoutes);
+    app.use("/api/predictions", prediction10DaysRoutes);
+    app.use("/api/predictions", predictionDailyRoutes);
+    app.use("/api/textbased", textbasedRoutes);
+    app.use("/api", assignActivitiesRoute);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`Server running at http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to connect to DB:", error);
+    process.exit(1);
+  }
+})();

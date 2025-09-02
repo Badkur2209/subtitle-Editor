@@ -1,3 +1,4 @@
+// Activities.tsx - Activity Translation Editor Page
 import React, { useEffect, useState } from "react";
 
 // Language config for dropdowns and mappings
@@ -62,6 +63,7 @@ export default function TextBased() {
     try {
       const response = await fetch(
         "http://localhost:5000/api/textbased/activities"
+        // "https://api.ayushcms.info/api/textbased/activities"
       );
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -116,11 +118,15 @@ export default function TextBased() {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/api/textbased/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        "http://localhost:5000/api/textbased/save",
+        // "https://api.ayushcms.info/api/textbased/save",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (!res.ok) throw new Error("Save failed");
 

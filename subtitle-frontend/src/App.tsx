@@ -27,6 +27,7 @@ import Uploader from "./pages/Uploader";
 import Login from "./pages/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
+
 const queryClient = new QueryClient();
 
 // Protected Route Component
