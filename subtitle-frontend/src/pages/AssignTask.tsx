@@ -1,5 +1,6 @@
 // subtitle-frontend/src/pages/AssignTask.tsx
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "../utils/config.ts";
 import { useForm } from "react-hook-form";
 import { CalendarIcon, User } from "lucide-react";
 import { format } from "date-fns";
@@ -38,8 +39,8 @@ const LANGUAGES = [
 
 export default function AssignTask() {
   // Form states
-  const [fromDate, setFromDate] = useState();
-  const [toDate, setToDate] = useState();
+  const [fromDate, setFromDate] = useState<Date | null>(null);
+  const [toDate, setToDate] = useState<Date | null>(null);
   const { register, handleSubmit, setValue } = useForm();
   const [selectedChannel, setSelectedChannel] = useState("");
   const [translators, setTranslators] = useState([]);
@@ -49,15 +50,31 @@ export default function AssignTask() {
   const [users, setUsers] = useState([]); // must be array
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userError, setUserError] = useState(null);
+  const [sourceLang, setSourceLang] = useState("");
+  const [targetLang, setTargetLang] = useState("");
 
   const TABS = ["activities", "prediction", "prediction-10-days", "translate"];
+  const langCodeMap: Record<string, string> = {
+    english: "en",
+    hindi: "hi",
+    gujarati: "gu",
+    marathi: "mr",
+    telugu: "te",
+    bengali: "bn",
+  };
+
+  const filteredUsers = users.filter((user) => {
+    const pair = `${langCodeMap[sourceLang]}_${langCodeMap[targetLang]}`;
+    return user.langPairs.includes(pair);
+  });
 
   // Fetch users from API
   useEffect(() => {
     setLoadingUsers(true);
     setUserError(null);
     axios
-      .get("/api/users")
+      .get(`${API_BASE_URL}/users`)
+      // .get("https://api.ayushcms.info/api/users")
       .then((res) => {
         // API returns { users: [...] }
         const arr = Array.isArray(res.data.users) ? res.data.users : [];
@@ -83,10 +100,72 @@ export default function AssignTask() {
   }, []);
 
   const onPredictionSubmit = (data) => {
-    data.fromDate = fromDate;
-    data.toDate = toDate;
-    console.log("Prediction Submit Data:", data);
-    // Add your POST logic here
+    const { taskCount, user } = data;
+
+    axios
+      .post(
+        `${API_BASE_URL}/predictions/assignPredictions`,
+        // "http://localhost:5000/api/predictions/assignPredictions",
+        // "https://api.ayushcms.info/api/predictions/assignPredictions",
+        {
+          userId: user,
+          taskCount: parseInt(taskCount),
+        }
+      )
+      .then((res) => {
+        console.log("Assigned successfully:", res.data);
+        alert(res.data.message); // or use a toast
+      })
+      .catch((err) => {
+        console.error("Assignment failed:", err);
+        alert("Error assigning predictions");
+      });
+  };
+
+  const onPrediction10daysSubmit = (data) => {
+    const { taskCount, user } = data;
+
+    axios
+      .post(
+        `${API_BASE_URL}/predictions/assignPredictions10days`,
+        // "http://localhost:5000/api/predictions/assignPredictions10days",
+        // "https://api.ayushcms.info/api/predictions/assignPredictions10days"
+        {
+          userId: user,
+          taskCount: parseInt(taskCount),
+        }
+      )
+      .then((res) => {
+        console.log("Assigned successfully:", res.data);
+        alert(res.data.message); // or use a toast
+      })
+      .catch((err) => {
+        console.error("Assignment failed:", err);
+        alert("Error assigning predictions");
+      });
+  };
+
+  const onActivitiesSubmit = (data) => {
+    const { taskCount, user } = data;
+
+    axios
+      .post(
+        `${API_BASE_URL}/activity/assignActivities`,
+        // "http://localhost:5000/api/predictions/assignPredictions10days",
+        // "https://api.ayushcms.info/api/predictions/assignPredictions10days"
+        {
+          userId: user,
+          taskCount: parseInt(taskCount),
+        }
+      )
+      .then((res) => {
+        console.log("Assigned successfully:", res.data);
+        alert(res.data.message); // or use a toast
+      })
+      .catch((err) => {
+        console.error("Assignment failed:", err);
+        alert("Error assigning activities");
+      });
   };
 
   return (
@@ -123,9 +202,180 @@ export default function AssignTask() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Activities form content goes here.
-            </p>
+            <form
+              onSubmit={handleSubmit(onActivitiesSubmit)}
+              className="space-y-6"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* From Date */}
+                <div className="space-y-2">
+                  <Label>From Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !fromDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {fromDate
+                          ? format(fromDate, "MM/dd/yyyy")
+                          : "MM/DD/YYYY"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={fromDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setFromDate(date); // ✅ works now
+                            setValue("fromDate", date);
+                          }
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {/* To Date */}
+                <div className="space-y-2">
+                  <Label>To Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !toDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {toDate ? format(toDate, "MM/dd/yyyy") : "MM/DD/YYYY"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={toDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setToDate(date); // updates UI
+                            setValue("toDate", date); // updates react-hook-form
+                          }
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {/* Source Language */}
+                <div className="space-y-2">
+                  <Label htmlFor="sourceLanguage">Source Language</Label>
+                  <Select
+                    onValueChange={(value) => {
+                      setSourceLang(value);
+                      setValue("sourceLanguage", value);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGES.map((lang) => (
+                        <SelectItem key={lang} value={lang}>
+                          {lang}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Target Language */}
+                <div className="space-y-2">
+                  <Label htmlFor="targetLanguage">Target Language</Label>
+                  <Select
+                    onValueChange={(value) => {
+                      setTargetLang(value);
+                      setValue("targetLanguage", value);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select target language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGES.map((lang) => (
+                        <SelectItem key={lang} value={lang}>
+                          {lang}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Select User */}
+                <div className="space-y-2">
+                  <Label>Select User</Label>
+
+                  <Select
+                    onValueChange={(value) => setValue("user", value)}
+                    disabled={loadingUsers || !sourceLang || !targetLang}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          loadingUsers
+                            ? "Loading users..."
+                            : !sourceLang || !targetLang
+                            ? "Select source & target languages first"
+                            : filteredUsers.length === 0
+                            ? "No matching users"
+                            : "Select user"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredUsers.length > 0 ? (
+                        filteredUsers.map((user) => (
+                          <SelectItem key={user.id} value={user.id.toString()}>
+                            {user.name} - {user.username}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem disabled value="no-users">
+                          {loadingUsers
+                            ? "Loading..."
+                            : !sourceLang || !targetLang
+                            ? "Select source and target languages"
+                            : "No users found for this language pair"}
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Task (Count) */}
+                <div className="space-y-2">
+                  <Label htmlFor="taskCount">Task (Count)</Label>
+                  <Input
+                    id="taskCount"
+                    type="number"
+                    {...register("taskCount")}
+                  />
+                </div>
+              </div>
+              {/* Assign Button */}
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  className="bg-primary hover:bg-primary/90 px-8"
+                  disabled={loadingUsers || !!userError}
+                >
+                  Assign
+                </Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
       )}
@@ -167,8 +417,10 @@ export default function AssignTask() {
                         mode="single"
                         selected={fromDate}
                         onSelect={(date) => {
-                          // setFromDate(date);
-                          setValue("fromDate", date);
+                          if (date) {
+                            setFromDate(date); // ✅ works now
+                            setValue("fromDate", date);
+                          }
                         }}
                         initialFocus
                         className="pointer-events-auto"
@@ -197,8 +449,10 @@ export default function AssignTask() {
                         mode="single"
                         selected={toDate}
                         onSelect={(date) => {
-                          // setToDate(date);
-                          setValue("toDate", date);
+                          if (date) {
+                            setToDate(date); // updates UI
+                            setValue("toDate", date); // updates react-hook-form
+                          }
                         }}
                         initialFocus
                         className="pointer-events-auto"
@@ -206,53 +460,14 @@ export default function AssignTask() {
                     </PopoverContent>
                   </Popover>
                 </div>
-                {/* Select User */}
-                <div className="space-y-2">
-                  <Label>Select User</Label>
-                  <Select
-                    onValueChange={(value) => setValue("user", value)}
-                    disabled={loadingUsers}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          loadingUsers
-                            ? "Loading users..."
-                            : userError
-                            ? userError
-                            : "Select user"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.isArray(users) && users.length > 0 ? (
-                        users.map((user) => (
-                          <SelectItem key={user.id} value={user.id.toString()}>
-                            {user.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="" disabled>
-                          {loadingUsers ? "Loading users..." : "No users found"}
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {/* Task (Count) */}
-                <div className="space-y-2">
-                  <Label htmlFor="taskCount">Task (Count)</Label>
-                  <Input
-                    id="taskCount"
-                    type="number"
-                    {...register("taskCount")}
-                  />
-                </div>
                 {/* Source Language */}
                 <div className="space-y-2">
                   <Label htmlFor="sourceLanguage">Source Language</Label>
                   <Select
-                    onValueChange={(value) => setValue("sourceLanguage", value)}
+                    onValueChange={(value) => {
+                      setSourceLang(value);
+                      setValue("sourceLanguage", value);
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select source language" />
@@ -270,7 +485,10 @@ export default function AssignTask() {
                 <div className="space-y-2">
                   <Label htmlFor="targetLanguage">Target Language</Label>
                   <Select
-                    onValueChange={(value) => setValue("targetLanguage", value)}
+                    onValueChange={(value) => {
+                      setTargetLang(value);
+                      setValue("targetLanguage", value);
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select target language" />
@@ -283,6 +501,55 @@ export default function AssignTask() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                {/* Select User */}
+                <div className="space-y-2">
+                  <Label>Select User</Label>
+
+                  <Select
+                    onValueChange={(value) => setValue("user", value)}
+                    disabled={loadingUsers || !sourceLang || !targetLang}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          loadingUsers
+                            ? "Loading users..."
+                            : !sourceLang || !targetLang
+                            ? "Select source & target languages first"
+                            : filteredUsers.length === 0
+                            ? "No matching users"
+                            : "Select user"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredUsers.length > 0 ? (
+                        filteredUsers.map((user) => (
+                          <SelectItem key={user.id} value={user.id.toString()}>
+                            {user.name} - {user.username}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem disabled value="no-users">
+                          {loadingUsers
+                            ? "Loading..."
+                            : !sourceLang || !targetLang
+                            ? "Select source and target languages"
+                            : "No users found for this language pair"}
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Task (Count) */}
+                <div className="space-y-2">
+                  <Label htmlFor="taskCount">Task (Count)</Label>
+                  <Input
+                    id="taskCount"
+                    type="number"
+                    {...register("taskCount")}
+                  />
                 </div>
               </div>
               {/* Assign Button */}
@@ -305,13 +572,184 @@ export default function AssignTask() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg font-medium">
-              Assign 10-Day Prediction
+              Assign Prediction 10 Days
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Prediction 10 Days form content goes here.
-            </p>
+            <form
+              onSubmit={handleSubmit(onPrediction10daysSubmit)}
+              className="space-y-6"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* From Date */}
+                <div className="space-y-2">
+                  <Label>From Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !fromDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {fromDate
+                          ? format(fromDate, "MM/dd/yyyy")
+                          : "MM/DD/YYYY"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={fromDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setFromDate(date); // ✅ works now
+                            setValue("fromDate", date);
+                          }
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {/* To Date */}
+                <div className="space-y-2">
+                  <Label>To Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !toDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {toDate ? format(toDate, "MM/dd/yyyy") : "MM/DD/YYYY"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={toDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setToDate(date); // updates UI
+                            setValue("toDate", date); // updates react-hook-form
+                          }
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {/* Source Language */}
+                <div className="space-y-2">
+                  <Label htmlFor="sourceLanguage">Source Language</Label>
+                  <Select
+                    onValueChange={(value) => {
+                      setSourceLang(value);
+                      setValue("sourceLanguage", value);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGES.map((lang) => (
+                        <SelectItem key={lang} value={lang}>
+                          {lang}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Target Language */}
+                <div className="space-y-2">
+                  <Label htmlFor="targetLanguage">Target Language</Label>
+                  <Select
+                    onValueChange={(value) => {
+                      setTargetLang(value);
+                      setValue("targetLanguage", value);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select target language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGES.map((lang) => (
+                        <SelectItem key={lang} value={lang}>
+                          {lang}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Select User */}
+                <div className="space-y-2">
+                  <Label>Select User</Label>
+
+                  <Select
+                    onValueChange={(value) => setValue("user", value)}
+                    disabled={loadingUsers || !sourceLang || !targetLang}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          loadingUsers
+                            ? "Loading users..."
+                            : !sourceLang || !targetLang
+                            ? "Select source & target languages first"
+                            : filteredUsers.length === 0
+                            ? "No matching users"
+                            : "Select user"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredUsers.length > 0 ? (
+                        filteredUsers.map((user) => (
+                          <SelectItem key={user.id} value={user.id.toString()}>
+                            {user.name} - {user.username}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem disabled value="no-users">
+                          {loadingUsers
+                            ? "Loading..."
+                            : !sourceLang || !targetLang
+                            ? "Select source and target languages"
+                            : "No users found for this language pair"}
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Task (Count) */}
+                <div className="space-y-2">
+                  <Label htmlFor="taskCount">Task (Count)</Label>
+                  <Input
+                    id="taskCount"
+                    type="number"
+                    {...register("taskCount")}
+                  />
+                </div>
+              </div>
+              {/* Assign Button */}
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  className="bg-primary hover:bg-primary/90 px-8"
+                  disabled={loadingUsers || !!userError}
+                >
+                  Assign
+                </Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
       )}

@@ -29,7 +29,7 @@ const navigationItems = [
   { title: "PredictionsDaily", url: "/PredictionsDaily", icon: FileText },
   { title: "Predictions10Days", url: "/Predictions10Days", icon: FileText },
   { title: "Uploader", url: "/Uploader", icon: FileText },
-  { title: "Task Status", url: "/UserManagement", icon: FileText },
+  { title: "Task Status", url: "/TaskStatus", icon: FileText },
   { title: "Update User Status", url: "/UpdateUserStatus", icon: FileText },
   { title: "Task Assignment", url: "/assign-task", icon: UserPlus },
   { title: "Stats Youtube", url: "/stats-youtube", icon: BarChart3 },

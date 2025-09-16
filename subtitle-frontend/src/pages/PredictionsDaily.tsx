@@ -1,5 +1,6 @@
 // PredictionDaily.tsx
 import React, { useEffect, useState, useMemo } from "react";
+import { API_BASE_URL } from "../utils/config.ts";
 
 const LANG_KEYS = [
   { label: "English", key: "en_1", langId: "english" },
@@ -60,12 +61,14 @@ const extractYouTubeId = (url) => {
 export default function PredictionsDaily() {
   const [activities, setActivities] = useState([]);
   const [selectedLanguageSet, setSelectedLanguageSet] = useState(null);
-  const [sourceLangKey, setSourceLangKey] = useState("en_1");
-  const [targetLangKey, setTargetLangKey] = useState("hi_1");
+  const [sourceLangKey, setSourceLangKey] = useState("hi_1");
+  const [targetLangKey, setTargetLangKey] = useState("en_1");
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedLink, setSelectedLink] = useState("");
-  const [filterDate, setFilterDate] = useState("");
+  const [filterDate, setFilterDate] = useState(() => {
+    return new Date().toISOString().split("T")[0];
+  });
   const [filterLagna, setFilterLagna] = useState("");
 
   const [translationTexts, setTranslationTexts] = useState({});
@@ -89,7 +92,8 @@ export default function PredictionsDaily() {
     setLoading(true);
     try {
       const response = await fetch(
-        "http://localhost:5000/api/predictions/predictions"
+        `${API_BASE_URL}/predictions/predictions`
+        // "http://localhost:5000/api/predictions/predictions"
         // "https://api.ayushcms.info/api/predictions/predictions"
       );
       if (!response.ok)
@@ -107,43 +111,117 @@ export default function PredictionsDaily() {
     }
   };
 
+  // const languageSetList = useMemo(() => {
+  //   console.log("🔍 useMemo running with:");
+  //   console.log("- filterLagna:", filterLagna);
+  //   console.log("- activities count:", activities.length);
+  //   console.log("- filterDate:", filterDate);
+  //   const list = [];
+  //   const filterDateObj = filterDate ? new Date(filterDate) : null;
+
+  //   activities.forEach((activity, index) => {
+  //     //logs
+  //     if (index < 5) {
+  //       // Only log first 5 to avoid spam
+  //       console.log(`📝 Activity ${index}:`, {
+  //         id: activity.id,
+  //         lagna_rasi: activity.lagna_rasi,
+  //         filterLagna: filterLagna,
+  //       });
+  //     }
+
+  //     // Date filtering logic (unchanged)
+  //     if (filterDateObj && activity.fromdate) {
+  //       const parts = activity.fromdate.split("/");
+  //       if (parts.length === 3) {
+  //         const [day, month, year] = parts;
+  //         const dbDateObj = new Date(
+  //           `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
+  //         );
+
+  //         const matchesDate =
+  //           dbDateObj.getFullYear() === filterDateObj.getFullYear() &&
+  //           dbDateObj.getMonth() === filterDateObj.getMonth() &&
+  //           dbDateObj.getDate() === filterDateObj.getDate();
+  //         if (!matchesDate) return;
+  //       }
+  //     } else if (filterDateObj && !activity.fromdate) {
+  //       return;
+  //     }
+  //     //log for lagna
+  //     if (filterLagna) {
+  //       console.log(`🎯 Lagna check for activity ${activity.id}:`, {
+  //         activityLagna: activity.lagna_rasi,
+  //         filterLagna: filterLagna,
+  //         match:
+  //           (activity.lagna_rasi || "").toLowerCase() ===
+  //           filterLagna.toLowerCase(),
+  //       });
+  //     }
+  //     // Lagna filtering logic (unchanged)
+  //     if (
+  //       filterLagna &&
+  //       (activity.lrname || "").toLowerCase() !== filterLagna.toLowerCase()
+  //     ) {
+  //       console.log(
+  //         `❌ Filtering OUT activity ${activity.id} - lagna mismatch`
+  //       );
+  //       return;
+  //     }
+  //     console.log(`✅ Activity ${activity.id} passed lagna filter`);
+  //     // **MODIFIED: Only check the selected source language instead of all languages**
+  //     const primaryCol = sourceLangKey;
+  //     if (activity[primaryCol] && activity[primaryCol].trim() !== "") {
+  //       list.push({
+  //         activity,
+  //         primaryLangKey: primaryCol,
+  //         targetLangKey: targetLangKey, // Always use the selected target language
+  //       });
+  //     }
+  //   });
+
+  //   return list;
+  // }, [activities, sourceLangKey, targetLangKey, filterDate, filterLagna]);
   const languageSetList = useMemo(() => {
     const list = [];
-    const filterDateObj = filterDate ? new Date(filterDate) : null;
+    const dateFilter = filterDate ? new Date(filterDate) : null;
+    const rasiFilter = filterLagna.trim().toLowerCase();
 
     activities.forEach((activity) => {
-      if (filterDateObj && activity.fromdate) {
-        const parts = activity.fromdate.split("-");
-        if (parts.length === 3) {
-          const [day, month, year] = parts;
-          const dbDateObj = new Date(`20${year}-${month}-${day}`);
-          const matchesDate =
-            dbDateObj.getFullYear() === filterDateObj.getFullYear() &&
-            dbDateObj.getMonth() === filterDateObj.getMonth() &&
-            dbDateObj.getDate() === filterDateObj.getDate();
-          if (!matchesDate) return;
+      // 1. Date filter
+      if (dateFilter && activity.fromdate) {
+        const [day, month, year] = activity.fromdate.split("/");
+        const activityDate = new Date(`${year}-${month}-${day}`);
+        if (
+          activityDate.getFullYear() !== dateFilter.getFullYear() ||
+          activityDate.getMonth() !== dateFilter.getMonth() ||
+          activityDate.getDate() !== dateFilter.getDate()
+        ) {
+          return; // skip if dates don't match
         }
-      } else if (filterDateObj && !activity.fromdate) {
-        return;
+      } else if (dateFilter && !activity.fromdate) {
+        return; // skip if filter set but no date on activity
       }
 
+      // 2. Rasi (lrname) filter
       if (
-        filterLagna &&
-        (activity.lagna_rasi || "").toLowerCase() !== filterLagna.toLowerCase()
+        rasiFilter &&
+        (activity.lrname || "").trim().toLowerCase() !== rasiFilter
       ) {
+        return; // skip if Rasi doesn't match
+      }
+
+      // 3. Language existence (unchanged)
+      const primaryCol = sourceLangKey;
+      if (!activity[primaryCol] || activity[primaryCol].trim() === "") {
         return;
       }
 
-      LANG_KEYS.forEach((lang) => {
-        const primaryCol = lang.key;
-        if (activity[primaryCol] && activity[primaryCol].trim() !== "") {
-          list.push({
-            activity,
-            primaryLangKey: primaryCol,
-            targetLangKey:
-              primaryCol === sourceLangKey ? targetLangKey : sourceLangKey,
-          });
-        }
+      // Passed all active filters
+      list.push({
+        activity,
+        primaryLangKey: primaryCol,
+        targetLangKey,
       });
     });
 
@@ -212,7 +290,8 @@ export default function PredictionsDaily() {
         .map(([key, text]) => {
           const index = parseInt(key.replace("col", ""), 10) - 1;
           return fetch(
-            "http://localhost:5000/api/predictions/savePrediction",
+            `${API_BASE_URL}/predictions/savePrediction`,
+            // "http://localhost:5000/api/predictions/savePrediction",
             // "https://api.ayushcms.info/api/predictions/savePrediction",
 
             {
@@ -235,7 +314,11 @@ export default function PredictionsDaily() {
       alert("❌ Failed to save translations");
     }
   };
-
+  const timeStringToSeconds = (timeStr) => {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(":").map(Number).reverse();
+    return parts.reduce((acc, part, i) => acc + part * Math.pow(60, i), 0);
+  };
   return (
     <div className="p-6">
       <h2 className="text-xl font-bold mb-4">
@@ -300,13 +383,13 @@ export default function PredictionsDaily() {
 
         {/* Lagna Filter */}
         <div>
-          <label className="block font-medium">Filter by Lagna Rasi</label>
+          <label className="block font-medium">Rasi</label>
           <select
             className="p-2 border rounded"
             value={filterLagna}
             onChange={(e) => setFilterLagna(e.target.value)}
           >
-            <option value="">-- All Lagna Rasi --</option>
+            <option value=""> Select Rasi</option>
             {LAGNA_OPTIONS.map((lagna) => (
               <option key={lagna} value={lagna}>
                 {lagna}
@@ -314,7 +397,13 @@ export default function PredictionsDaily() {
             ))}
           </select>
         </div>
-
+        <button
+          type="button"
+          className="mt-6 bg-red-600 text-white px-5 py-2 rounded disabled:bg-gray-400"
+          onClick={() => setFilterDate("")}
+        >
+          Clear date
+        </button>
         <button
           className="mt-6 bg-blue-600 text-white px-5 py-2 rounded disabled:bg-gray-400"
           onClick={handleLoad}
@@ -326,7 +415,7 @@ export default function PredictionsDaily() {
       </div>
 
       {/* YouTube embed */}
-      {selectedLink && (
+      {/* {selectedLink && (
         <div className="mb-4">
           <h3 className="font-semibold mb-2">Related Video</h3>
           <iframe
@@ -337,6 +426,29 @@ export default function PredictionsDaily() {
             allowFullScreen
             title="Related Video"
           />
+        </div>
+      )} */}
+      {selectedLink && selectedLanguageSet && (
+        <div className="mb-4">
+          <h3 className="font-semibold mb-2">Related Video</h3>
+          {(() => {
+            const start = timeStringToSeconds(
+              selectedLanguageSet.activity.starttime
+            );
+            const end = timeStringToSeconds(
+              selectedLanguageSet.activity.endtime
+            );
+            const videoId = extractYouTubeId(selectedLink);
+            const url = `https://www.youtube.com/embed/${videoId}?start=${start}&end=${end}&rel=0`;
+            return (
+              <iframe
+                className="w-full h-64 rounded"
+                src={url}
+                allowFullScreen
+                title="Related Video"
+              />
+            );
+          })()}
         </div>
       )}
 

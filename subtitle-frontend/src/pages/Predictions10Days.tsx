@@ -1,6 +1,7 @@
 // Prediction10Days.tsx
 // Prediction10Days.tsx
 import React, { useEffect, useState, useMemo } from "react";
+import { API_BASE_URL } from "../utils/config.ts";
 
 const LANG_KEYS = [
   { label: "English", key: "en_1" },
@@ -10,6 +11,22 @@ const LANG_KEYS = [
   { label: "Bengali", key: "bn_1" },
   { label: "Telugu", key: "te_1" },
 ];
+function parseDMYDate(dmyStr) {
+  if (!dmyStr) return null;
+  const parts = dmyStr.split("/");
+  if (parts.length !== 3) return null;
+  const day = Number(parts[0]);
+  const month = Number(parts[1]) - 1; // JS months 0-based
+  const year = Number(parts[2]);
+  if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+  return new Date(year, month, day);
+}
+// Prediction10Days.tsx ─ top of file, after parseDMYDate
+function parseDate(isoStr: string): Date | null {
+  if (!isoStr) return null;
+  const [y, m, d] = isoStr.split("-");
+  return new Date(Number(y), Number(m) - 1, Number(d));
+}
 
 const LANGUAGE_COLUMNS_MAP = {
   en_1: ["en_1", "en_2", "en_3", "en_4"],
@@ -80,13 +97,36 @@ export default function Prediction10Days() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [selectedLanguageSet, setSelectedLanguageSet] =
     useState<LanguageSetItem | null>(null);
-  const [sourceLangKey, setSourceLangKey] = useState("en_1");
-  const [targetLangKey, setTargetLangKey] = useState("hi_1");
+  const [sourceLangKey, setSourceLangKey] = useState("hi_1");
+  const [targetLangKey, setTargetLangKey] = useState("en_1");
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedLink, setSelectedLink] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  //16 sept
+  // const [fromDate, setFromDate] = useState(() => {
+  //   return new Date().toISOString().split("T")[0];
+  // });
+  // const [toDate, setToDate] = useState(() => {
+  //   return new Date().toISOString().split("T")[0];
+  // });
+
+  // Initialize both dates to today
+  const [fromDate, setFromDate] = useState(
+    () => new Date().toISOString().split("T")[0]
+  );
+  const [toDate, setToDate] = useState(fromDate);
+
+  // When fromDate changes, sync toDate if it matched the old fromDate
+  const onFromDateChange = (value: string) => {
+    setToDate((prev) => (prev === fromDate ? value : prev));
+    setFromDate(value);
+  };
+
+  // Handler for manual toDate changes
+  const onToDateChange = (value: string) => {
+    setToDate(value);
+  };
+
   const [filterLagna, setFilterLagna] = useState("");
 
   const [translationTexts, setTranslationTexts] = useState<
@@ -97,7 +137,11 @@ export default function Prediction10Days() {
     const keys = LANGUAGE_COLUMNS_MAP[langKey] || [];
     return keys.filter((key) => item[key] && item[key].trim() !== "");
   };
-
+  const timeStringToSeconds = (timeStr) => {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(":").map(Number).reverse();
+    return parts.reduce((acc, part, i) => acc + part * Math.pow(60, i), 0);
+  };
   const LAGNA_OPTIONS = [
     "Mesha",
     "Vrushabh",
@@ -112,56 +156,221 @@ export default function Prediction10Days() {
     "Kumbh",
     "Meen",
   ];
+  // const { user } = useAuth(); // or useUser()
+  // const currentUsername = user?.email;
 
+  const currentUsername = "hindi11@ayushcms.com";
   const handleLoad = async () => {
     setLoading(true);
     try {
       const response = await fetch(
-        "http://localhost:5000/api/predictions/predictions10days"
-        // "https://api.ayushcms.info/api/predictions/predictions10days"
+        `${API_BASE_URL}/predictions/predictions10days`
       );
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
-      setActivities(data);
+
+      // ✅ Filter predictions based on assigned_to
+      const filteredData = data.filter(
+        (item) =>
+          item.assigned_to?.trim().toLowerCase() ===
+          currentUsername.trim().toLowerCase()
+      );
+
+      setActivities(filteredData);
       setLoaded(true);
     } catch (err) {
-      console.error("❌ Error loading activities:", err);
+      console.error("Error loading activities:", err);
       alert("Failed to load activities.");
     } finally {
       setLoading(false);
     }
   };
 
+  // const handleLoad = async () => {
+
+  //   setLoading(true);
+  //   try {
+  //     const response = await fetch(
+  //       `${API_BASE_URL}/predictions/predictions10days`
+  //       // "http://localhost:5000/api/predictions/predictions10days"
+  //       // "https://api.ayushcms.info/api/predictions/predictions10days"
+  //     );
+  //     if (!response.ok)
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+  //     const data = await response.json();
+  //     const filtered = data.filter(
+  //       (act) => act.assigned_to?.trim() === currentUsername.trim()
+  //     );
+  //     setActivities(filtered);
+  //     // setActivities(data);
+  //     setLoaded(true);
+  //   } catch (err) {
+  //     console.error("❌ Error loading activities:", err);
+  //     alert("Failed to load activities.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  // const languageSetList = useMemo(() => {
+  //   const list: LanguageSetItem[] = [];
+  //   activities.forEach((activity) => {
+  //     if (
+  //       (activity.assigned_to || "").trim() !== (activity.username || "").trim()
+  //     ) {
+  //       return;
+  //     }
+  //     const aFrom = parseDMYDate(activity.fromdate || "");
+  //     const aTo = parseDMYDate(activity.todate || "");
+
+  //     // Apply filter only if one or both dates are selected
+  //     if (fromDate || toDate) {
+  //       const from = fromDate ? new Date(fromDate) : null;
+  //       const to = toDate ? new Date(toDate) : null;
+
+  //       // Skip if activity doesn't fall within the given range
+  //       if (
+  //         (from && (!aTo || aTo < from)) || // aTo is before fromDate
+  //         (to && (!aFrom || aFrom > to)) // aFrom is after toDate
+  //       ) {
+  //         return; // Exclude this activity
+  //       }
+  //     }
+
+  //     if (filterLagna) {
+  //       const actLagna = (activity.lagna_rasi || activity.lrname || "")
+  //         .toLowerCase()
+  //         .trim();
+  //       const filter = filterLagna.toLowerCase().trim();
+  //       if (!(actLagna === filter || actLagna.includes(filter))) return;
+  //     }
+
+  //     LANG_KEYS.forEach((lang) => {
+  //       const col = lang.key;
+  //       if (activity[col] && activity[col].trim() !== "") {
+  //         list.push({
+  //           activity,
+  //           primaryLangKey: col,
+  //           targetLangKey:
+  //             col === sourceLangKey ? targetLangKey : sourceLangKey,
+  //         });
+  //       }
+  //     });
+  //   });
+  //   return list;
+  // }, [activities, sourceLangKey, targetLangKey, fromDate, toDate, filterLagna,filterLagna]);
+  // const languageSetList = useMemo(() => {
+  //   const list: LanguageSetItem[] = [];
+
+  //   activities.forEach((activity) => {
+  //     // ✅ Only show if assigned_to matches username
+  //     if (
+  //       (activity.assigned_to || "").trim() !== (activity.username || "").trim()
+  //     ) {
+  //       return;
+  //     }
+
+  //     const aFrom = parseDMYDate(activity.fromdate || "");
+  //     const aTo = parseDMYDate(activity.todate || "");
+
+  //     if (fromDate || toDate) {
+  //       const from = fromDate ? new Date(fromDate) : null;
+  //       const to = toDate ? new Date(toDate) : null;
+
+  //       if ((from && (!aTo || aTo < from)) || (to && (!aFrom || aFrom > to))) {
+  //         return;
+  //       }
+  //     }
+
+  //     if (filterLagna) {
+  //       const actLagna = (activity.lagna_rasi || activity.lrname || "")
+  //         .toLowerCase()
+  //         .trim();
+  //       const filter = filterLagna.toLowerCase().trim();
+  //       if (!(actLagna === filter || actLagna.includes(filter))) return;
+  //     }
+
+  //     LANG_KEYS.forEach((lang) => {
+  //       const col = lang.key;
+  //       if (activity[col] && activity[col].trim() !== "") {
+  //         list.push({
+  //           activity,
+  //           primaryLangKey: col,
+  //           targetLangKey:
+  //             col === sourceLangKey ? targetLangKey : sourceLangKey,
+  //         });
+  //       }
+  //     });
+  //   });
+
+  //   return list;
+  // }, [activities, sourceLangKey, targetLangKey, fromDate, toDate, filterLagna]);
   const languageSetList = useMemo(() => {
     const list: LanguageSetItem[] = [];
+
+    activities.filter((activity) => activity.assigned_to === currentUsername);
+    // .forEach((activity) => {
+    //   const aFrom = parseDMYDate(activity.fromdate || "");
+    //   const aTo = parseDMYDate(activity.todate || "");
+
+    //   if (fromDate || toDate) {
+    //     const from = fromDate ? new Date(fromDate) : null;
+    //     const to = toDate ? new Date(toDate) : null;
+
+    //     if (
+    //       (from && (!aTo || aTo < from)) ||
+    //       (to && (!aFrom || aFrom > to))
+    //     ) {
+    //       return;
+    //     }
+    //   }
+
+    //   if (filterLagna) {
+    //     const actLagna = (activity.lrname || activity.lrname || "")
+    //       .toLowerCase()
+    //       .trim();
+    //     const filter = filterLagna.toLowerCase().trim();
+    //     if (!(actLagna === filter || actLagna.includes(filter))) return;
+    //   }
+
+    //   LANG_KEYS.forEach((lang) => {
+    //     const col = lang.key;
+    //     if (activity[col] && activity[col].trim() !== "") {
+    //       list.push({
+    //         activity,
+    //         primaryLangKey: col,
+    //         targetLangKey:
+    //           col === sourceLangKey ? targetLangKey : sourceLangKey,
+    //       });
+    //     }
+    //   });
+    // });
+    const from = parseDate(fromDate);
+    const to = parseDate(toDate);
+
     activities.forEach((activity) => {
-      if (fromDate && toDate) {
-        const from = new Date(fromDate);
-        const to = new Date(toDate);
-        const aFrom = new Date(activity.fromdate || "");
-        const aTo = new Date(activity.todate || "");
-        if (!(aFrom <= to && aTo >= from)) return;
-      }
+      const aFrom = parseDMYDate(activity.fromdate || "");
+      const aTo = parseDMYDate(activity.todate || "");
+
+      // 1. Date range filter
+      if ((fromDate && !aTo) || (toDate && !aFrom)) return;
+      if (fromDate && aTo < from) return;
+      if (toDate && aFrom > to) return;
+
+      // 2. Rasi (lrname) filter
       if (filterLagna) {
-        const actLagna = (activity.lagna_rasi || activity.lrname || "")
-          .toLowerCase()
-          .trim();
-        const filter = filterLagna.toLowerCase().trim();
-        if (!(actLagna === filter || actLagna.includes(filter))) return;
+        const code = (activity.lrname || "").trim().toLowerCase();
+        const filt = filterLagna.trim().toLowerCase();
+        if (code !== filt) return;
       }
-      LANG_KEYS.forEach((lang) => {
-        const col = lang.key;
-        if (activity[col] && activity[col].trim() !== "") {
-          list.push({
-            activity,
-            primaryLangKey: col,
-            targetLangKey:
-              col === sourceLangKey ? targetLangKey : sourceLangKey,
-          });
-        }
-      });
+
+      // 3. Source-language presence
+      const primaryCol = sourceLangKey;
+      if (!activity[primaryCol] || activity[primaryCol].trim() === "") return;
+
+      // Passed all filters → add to list
+      list.push({ activity, primaryLangKey: primaryCol, targetLangKey });
     });
+
     return list;
   }, [activities, sourceLangKey, targetLangKey, fromDate, toDate, filterLagna]);
 
@@ -199,7 +408,8 @@ export default function Prediction10Days() {
         .filter((item) => item.text.trim())
         .map((item) =>
           fetch(
-            "http://localhost:5000/api/predictions/savePrediction10days",
+            `${API_BASE_URL}/predictions/savePrediction10days`,
+            // "http://localhost:5000/api/predictions/savePrediction10days",
             // "https://api.ayushcms.info/api/predictions/savePrediction10days",
             {
               method: "POST",
@@ -270,7 +480,7 @@ export default function Prediction10Days() {
             type="date"
             className="p-2 border rounded"
             value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
+            onChange={(e) => onFromDateChange(e.target.value)}
           />
         </div>
         <div>
@@ -279,7 +489,7 @@ export default function Prediction10Days() {
             type="date"
             className="p-2 border rounded"
             value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
+            onChange={(e) => onToDateChange(e.target.value)}
           />
         </div>
 
@@ -299,6 +509,18 @@ export default function Prediction10Days() {
             ))}
           </select>
         </div>
+        <button
+          className="mt-7 h-10 text-white bg-gray-500 hover:bg-gray-600 rounded px-5"
+          onClick={() => {
+            setFromDate("");
+            setToDate("");
+            setFilterLagna("");
+            setSelectedLanguageSet(null);
+            setSelectedLink("");
+          }}
+        >
+          Clear Filters
+        </button>
 
         {/* Load Button */}
         <button
@@ -311,7 +533,7 @@ export default function Prediction10Days() {
       </div>
 
       {/* YouTube */}
-      {selectedLink && (
+      {/* {selectedLink && (
         <div className="mb-4">
           <h3 className="font-semibold mb-2">Related Video</h3>
           <iframe
@@ -322,6 +544,29 @@ export default function Prediction10Days() {
             allowFullScreen
             title="Related Video"
           />
+        </div>
+      )} */}
+      {selectedLink && (
+        <div className="mb-4">
+          <h3 className="font-semibold mb-2">Related Video</h3>
+          {(() => {
+            const start = timeStringToSeconds(
+              selectedLanguageSet.activity.starttime
+            );
+            const end = timeStringToSeconds(
+              selectedLanguageSet.activity.endtime
+            );
+            const videoId = extractYouTubeId(selectedLink);
+            const url = `https://www.youtube.com/embed/${videoId}?start=${start}&end=${end}&rel=0`;
+            return (
+              <iframe
+                className="w-full h-64 rounded"
+                src={url}
+                allowFullScreen
+                title="Related Video"
+              />
+            );
+          })()}
         </div>
       )}
 
@@ -359,11 +604,11 @@ export default function Prediction10Days() {
                         📅 {formatDate(item.activity.fromdate)}
                       </span>
                     )}
-                    {item.activity.lagna_rasi && (
+                    {/* {item.activity.lrname && (
                       <span className="text-gray-700 text-sm font-medium">
-                        {item.activity.lagna_rasi}
+                        {item.activity.lrname}
                       </span>
-                    )}
+                    )} */}
                     {item.activity.lrname && (
                       <span className="text-gray-700 text-sm font-medium">
                         {item.activity.lrname}

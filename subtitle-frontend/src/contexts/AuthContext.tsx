@@ -66,8 +66,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const verifyToken = async (token: string): Promise<void> => {
     try {
       const response = await fetch(
-        "https://api.ayushcms.info/api/auth/verify",
-        // "http://localhost:5000/api/auth/verify",
+        // "https://api.ayushcms.info/api/auth/verify",
+        "http://localhost:5000/api/auth/verify",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -93,8 +93,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       console.log("🔐 Logging in with", username, password);
-      const response = await fetch("https://api.ayushcms.info/api/auth/login", {
-        // const response = await fetch("http://localhost:5000/api/auth/login", {
+      // const response = await fetch("https://api.ayushcms.info/api/auth/login", {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

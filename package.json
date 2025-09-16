@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "node-webvtt": "^1.9.4",
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4"
   }

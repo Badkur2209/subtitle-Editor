@@ -17,16 +17,15 @@ import SettingsPage from "./pages/SettingsPage";
 import HelpSupport from "./pages/HelpSupport";
 import NotFound from "./pages/NotFound";
 import Translate from "./pages/Translate";
-import TextBased from "./pages/TextBased";
+// import TextBased from "./pages/TextBased";
 import PredictionsDaily from "./pages/PredictionsDaily";
 import Predictions10Days from "./pages/Predictions10Days";
-import UserManagement from "./pages/UserManagement";
+import TaskStatus from "./pages/TaskStatus";
 import UpdateUserStatus from "./pages/UpdateUserStatus";
 import Activities from "./pages/Activities";
 import Uploader from "./pages/Uploader";
 import Login from "./pages/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-
 
 const queryClient = new QueryClient();
 
@@ -63,27 +62,24 @@ const AppLayout: React.FC = () => {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/uploader" element={<Uploader />} />
-              <Route
-                path="/update-user-status"
-                element={<UpdateUserStatus />}
-              />
+              <Route path="/UpdateUserStatus" element={<UpdateUserStatus />} />
               <Route
                 path="/Predictions10Days"
                 element={<Predictions10Days />}
               />
               <Route path="/PredictionsDaily" element={<PredictionsDaily />} />
-              <Route path="/text-based" element={<TextBased />} />
+              {/* <Route path="/text-based" element={<TextBased />} /> */}
               <Route path="/activities" element={<Activities />} />
               <Route path="/translate" element={<Translate />} />
               <Route path="/assign-task" element={<AssignTask />} />
               <Route path="/stats-youtube" element={<StatsYoutube />} />
               <Route path="/user-info" element={<UserInfoPage />} />
               <Route path="/vtt-files-stats" element={<VTTFilesStats />} />
+              <Route path="/TaskStatus" element={<TaskStatus />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/help-support" element={<HelpSupport />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-            
           </main>
         </div>
       </div>

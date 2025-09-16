@@ -1,6 +1,6 @@
 // UserInfoPage.tsx
 import React, { useState, useEffect, FormEvent } from "react";
-
+import { API_BASE_URL } from "@/utils/config.ts";
 type UserInfo = {
   id: number;
   name: string;
@@ -60,13 +60,17 @@ const UserInfoPage: React.FC = () => {
   useEffect(() => {
     async function fetchUsers() {
       try {
-        const res = await fetch("http://localhost:5000/api/users");
+        const res = await fetch(
+          `${API_BASE_URL}/users`
+          // "http://localhost:5000/api/users"
+        );
         if (res.ok) {
           const data = await res.json();
           setUsers(data.users || []);
         }
-      } catch {
+      } catch (err) {
         // Ignore
+        console.log(err);
       }
     }
     fetchUsers();
@@ -132,11 +136,15 @@ const UserInfoPage: React.FC = () => {
 
     // Send to backend
     try {
-      const res = await fetch("http://localhost:5000/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
+      const res = await fetch(
+        // "http://localhost:5000/api/users"
+        `${API_BASE_URL}/users`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        }
+      );
       if (!res.ok) {
         const { error } = await res.json();
         setError(error || "Failed to create user.");

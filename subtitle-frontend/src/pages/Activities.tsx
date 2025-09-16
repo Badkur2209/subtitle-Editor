@@ -1,5 +1,6 @@
 // Activities.tsx - Activity Translation Editor Page
 import React, { useEffect, useState } from "react";
+import { API_BASE_URL } from "../utils/config.ts";
 
 // Language config for dropdowns and mappings
 const LANG_KEYS = [
@@ -15,6 +16,10 @@ function getPlainLangName(langKey) {
   const lang = LANG_KEYS.find((l) => l.key === langKey);
   return lang ? lang.label : langKey.replace("act_", "");
 }
+const currentUsername = "hindi11@ayushcms.com";
+const jwtToken =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTcsInVzZXJuYW1lIjoiaGluZGkxMUBheXVzaGNtcy5jb20iLCJyb2xlIjoidHJhbnNsYXRvciIsIm5hbWUiOiJoaW5kaSIsImlhdCI6MTc1NzkyOTUxNCwiZXhwIjoxNzU4NTM0MzE0fQ.SnAdTwofqLui3a2dt3O-YELqw-ilxZ5RrEqfgwOUBTg";
+// "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MjEsInVzZXJuYW1lIjoibWFyYXRoaTkzQGF5dXNoY21zLmNvbSIsInJvbGUiOiJ0cmFuc2xhdG9yIiwibmFtZSI6Im1hcmF0aGkiLCJpYXQiOjE3NTc5Mjc5MTEsImV4cCI6MTc1ODUzMjcxMX0.xYJ-oRcDz9PMi4rMGI05wcdyupAf5ho4gs_UqKPTbeI";
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -32,13 +37,15 @@ export default function TextBased() {
   const [activities, setActivities] = useState([]);
   const [selected, setSelected] = useState(null);
   const [translatedText, setTranslatedText] = useState("");
-  const [sourceLangKey, setSourceLangKey] = useState("act_en");
-  const [targetLangKey, setTargetLangKey] = useState("act_hi");
+  const [sourceLangKey, setSourceLangKey] = useState("act_hi");
+  const [targetLangKey, setTargetLangKey] = useState("act_en");
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedLink, setSelectedLink] = useState("");
   const [activityNameText, setActivityNameText] = useState("");
-  const [filterDate, setFilterDate] = useState("");
+  const [filterDate, setFilterDate] = useState(() => {
+    return new Date().toISOString().split("T")[0];
+  });
 
   const getActivityName = (activity, activityNameKey) =>
     activity?.[activityNameKey] || "";
@@ -57,28 +64,55 @@ export default function TextBased() {
     }
     return null;
   };
+  const currentUsername = "hindi11@ayushcms.com"; // hardcoded for now
 
   const handleLoad = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/textbased/activities"
-        // "https://api.ayushcms.info/api/textbased/activities"
-      );
+      const url = `${API_BASE_URL}/activities?assignedTo=${encodeURIComponent(
+        currentUsername
+      )}`;
+      const response = await fetch(url);
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
-      setActivities(data);
+      const filteredByUser = data.filter(
+        (activity) => activity.assigned_to === currentUsername
+      );
+      setActivities(filteredByUser);
+
+      // setActivities(data); // sets only activities assigned to currentUsername
       setLoaded(true);
     } catch (err) {
-      console.error("Error loading activities:", err);
-      alert(
-        "Failed to load activities. Please check if the server is running."
-      );
+      console.error("Failed to load activities", err);
+      alert("Failed to load activities.");
     } finally {
       setLoading(false);
     }
   };
+
+  // const handleLoad = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const response = await fetch(
+  //       `${API_BASE_URL}/textbased/activities`
+  //       // "http://localhost:5000/api/textbased/activities"
+  //       // "https://api.ayushcms.info/api/textbased/activities"
+  //     );
+  //     if (!response.ok)
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+  //     const data = await response.json();
+  //     setActivities(data);
+  //     setLoaded(true);
+  //   } catch (err) {
+  //     console.error("Error loading activities:", err);
+  //     alert(
+  //       "Failed to load activities. Please check if the server is running."
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   useEffect(() => {
     handleLoad(); // Auto-load on mount
@@ -102,7 +136,11 @@ export default function TextBased() {
       youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : ""
     );
   };
-
+  const timeStringToSeconds = (timeStr) => {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(":").map(Number).reverse();
+    return parts.reduce((acc, part, i) => acc + part * Math.pow(60, i), 0);
+  };
   const handleSave = async () => {
     if (!selected || !translatedText.trim()) {
       alert("Please select an activity and enter a translation.");
@@ -119,7 +157,8 @@ export default function TextBased() {
 
     try {
       const res = await fetch(
-        "http://localhost:5000/api/textbased/save",
+        `${API_BASE_URL}/textbased/save`,
+        // "http://localhost:5000/api/textbased/save",
         // "https://api.ayushcms.info/api/textbased/save",
         {
           method: "POST",
@@ -255,9 +294,20 @@ export default function TextBased() {
           )}
         </div>
       </div>
-
+      <div className="flex items-center gap-2 mt-1">
+        <div className="text-sm text-gray-600">
+          Selected: {new Date(filterDate).toLocaleDateString("en-GB")}
+        </div>
+        <button
+          type="button"
+          onClick={() => setFilterDate("")}
+          className="text-sm text-blue-600 underline hover:text-blue-800"
+        >
+          Clear
+        </button>
+      </div>
       {/* Video */}
-      {selectedLink && (
+      {/* {selectedLink && (
         <div className="mb-4">
           <h3 className="font-semibold mb-2">Related Video</h3>
           <iframe
@@ -268,6 +318,25 @@ export default function TextBased() {
             allowFullScreen
             title="Related Video"
           />
+        </div>
+      )} */}
+      {selectedLink && (
+        <div className="mb-4">
+          <h3 className="font-semibold mb-2">Related Video</h3>
+          {(() => {
+            const start = timeStringToSeconds(selected.BB_Start);
+            const end = timeStringToSeconds(selected.BB_End);
+            const videoId = extractYouTubeId(selectedLink);
+            const url = `https://www.youtube.com/embed/${videoId}?start=${start}&end=${end}&rel=0`;
+            return (
+              <iframe
+                className="w-full h-64 rounded"
+                src={url}
+                allowFullScreen
+                title="Related Video"
+              />
+            );
+          })()}
         </div>
       )}
 

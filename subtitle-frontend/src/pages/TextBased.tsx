@@ -42,15 +42,22 @@ export default function TextBased() {
   const handleLoad = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/textbased/activities");
-      // const response = await fetch("https://api.ayushcms.info/api/textbased/activities");
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await fetch(
+        "http://localhost:5000/api/textbased/activities"
+      );
+      // const response = await fetch(
+      //   "https://api.ayushcms.info/api/textbased/activities");
+
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setActivities(data);
       setLoaded(true);
     } catch (err) {
       console.error("Error loading activities:", err);
-      alert("Failed to load activities. Please check if the server is running.");
+      alert(
+        "Failed to load activities. Please check if the server is running."
+      );
     } finally {
       setLoading(false);
     }
@@ -59,7 +66,9 @@ export default function TextBased() {
   // Update translatedText whenever selected or target language changes
   useEffect(() => {
     if (selected && loaded) {
-      const targetDataKey = LANG_KEYS.find((l) => l.key === targetLangKey)?.dataKey;
+      const targetDataKey = LANG_KEYS.find(
+        (l) => l.key === targetLangKey
+      )?.dataKey;
       setTranslatedText(selected[targetDataKey] || "");
     }
   }, [targetLangKey, selected, loaded]);
@@ -80,10 +89,14 @@ export default function TextBased() {
 
   const handleSelectActivity = (activity) => {
     setSelected(activity);
-    const targetDataKey = LANG_KEYS.find((l) => l.key === targetLangKey)?.dataKey;
+    const targetDataKey = LANG_KEYS.find(
+      (l) => l.key === targetLangKey
+    )?.dataKey;
     setTranslatedText(activity[targetDataKey] || "");
     const youtubeId = extractYouTubeId(activity.url);
-    setSelectedLink(youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : "");
+    setSelectedLink(
+      youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : ""
+    );
   };
 
   const handleSave = async () => {
@@ -92,7 +105,9 @@ export default function TextBased() {
       return;
     }
 
-    const targetDataKey = LANG_KEYS.find((l) => l.key === targetLangKey)?.dataKey;
+    const targetDataKey = LANG_KEYS.find(
+      (l) => l.key === targetLangKey
+    )?.dataKey;
 
     const payload = {
       id: selected.id,
@@ -177,11 +192,13 @@ export default function TextBased() {
             value={targetLangKey}
             onChange={(e) => setTargetLangKey(e.target.value)}
           >
-            {LANG_KEYS.filter((lang) => lang.key !== sourceLangKey).map((lang) => (
-              <option key={lang.key} value={lang.key}>
-                {lang.label}
-              </option>
-            ))}
+            {LANG_KEYS.filter((lang) => lang.key !== sourceLangKey).map(
+              (lang) => (
+                <option key={lang.key} value={lang.key}>
+                  {lang.label}
+                </option>
+              )
+            )}
           </select>
         </div>
 
@@ -202,12 +219,13 @@ export default function TextBased() {
           <h3 className="font-semibold mb-2">Related Video</h3>
           {/* disabled related video in iframe */}
           <iframe
-             className="w-full h-64 rounded"
-              src={`https://www.youtube.com/embed/${extractYouTubeId(selectedLink)}?rel=0`}
-                    allowFullScreen
-              title="Related Video"
-                      />
-
+            className="w-full h-64 rounded"
+            src={`https://www.youtube.com/embed/${extractYouTubeId(
+              selectedLink
+            )}?rel=0`}
+            allowFullScreen
+            title="Related Video"
+          />
         </div>
       )}
 
@@ -216,34 +234,49 @@ export default function TextBased() {
         <div className="flex gap-6">
           {/* Activities List */}
           <div className="w-1/3">
-            <h3 className="font-semibold mb-2">Activities ({filteredActivities.length})</h3>
+            <h3 className="font-semibold mb-2">
+              Activities ({filteredActivities.length})
+            </h3>
             <ul className="space-y-2 max-h-96 overflow-y-auto">
               {filteredActivities.map((activity, index) => (
                 <li
                   key={activity.id}
                   className={`p-2 border rounded cursor-pointer ${
-                    selected?.id === activity.id ? "bg-blue-100" : "hover:bg-gray-100"
+                    selected?.id === activity.id
+                      ? "bg-blue-100"
+                      : "hover:bg-gray-100"
                   }`}
                   onClick={() => handleSelectActivity(activity)}
                   role="button"
                   tabIndex={0}
-                  onKeyPress={(e) => { if(e.key==='Enter') handleSelectActivity(activity); }}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") handleSelectActivity(activity);
+                  }}
                 >
                   <div className="text-sm font-semibold flex items-center gap-2">
                     {index + 1}.
                     {activity.Date && (
-                      <span className="text-gray-500 text-sm">📅 {formatDate(activity.Date)}</span>
+                      <span className="text-gray-500 text-sm">
+                        📅 {formatDate(activity.Date)}
+                      </span>
                     )}{" "}
                     <span>
-                      {getActivityName(activity, sourceLangKey).substring(0, 50)}
-                      {getActivityName(activity, sourceLangKey).length > 50 ? "..." : ""}
+                      {getActivityName(activity, sourceLangKey).substring(
+                        0,
+                        50
+                      )}
+                      {getActivityName(activity, sourceLangKey).length > 50
+                        ? "..."
+                        : ""}
                     </span>
                   </div>
                 </li>
               ))}
             </ul>
             {filteredActivities.length === 0 && (
-              <p className="text-gray-500 text-sm">No activities found for the selected source language.</p>
+              <p className="text-gray-500 text-sm">
+                No activities found for the selected source language.
+              </p>
             )}
           </div>
 
@@ -253,40 +286,48 @@ export default function TextBased() {
               <div>
                 {/* Activity Info */}
                 <div className="mb-4 p-3 bg-gray-50 rounded text-sm text-gray-600">
-                  <strong>ID:</strong> {selected.id} | <strong>Date:</strong> {formatDate(selected.todate)} |
-                  <strong> Video:</strong> {selected.url ? "Available" : "Not available"}
+                  <strong>ID:</strong> {selected.id} | <strong>Date:</strong>{" "}
+                  {formatDate(selected.todate)} |<strong> Video:</strong>{" "}
+                  {selected.url ? "Available" : "Not available"}
                 </div>
 
                 <div className="flex gap-8">
                   {/* Original Section */}
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold mb-2">
-                       {getPlainLangName(sourceLangKey)}
+                      {getPlainLangName(sourceLangKey)}
                     </h3>
                     <div className="mb-1 font-semibold text-gray-700">
-                     {getActivityName(selected, sourceLangKey)}
-                      </div>
+                      {getActivityName(selected, sourceLangKey)}
+                    </div>
                     <textarea
                       className="w-full h-80 p-2 border rounded bg-gray-100"
                       readOnly
-                      value={getActivityData(selected, LANG_KEYS.find((l) => l.key === sourceLangKey)?.dataKey)}
+                      value={getActivityData(
+                        selected,
+                        LANG_KEYS.find((l) => l.key === sourceLangKey)?.dataKey
+                      )}
                     />
                   </div>
 
                   {/* Translation Section */}
-                  
+
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold mb-2">
-                       {getPlainLangName(targetLangKey)}
+                      {getPlainLangName(targetLangKey)}
                     </h3>
                     <div className="mb-1 font-semibold text-gray-700">
-                    <textarea name="" id="">{getActivityName(selected, targetLangKey)}</textarea> 
+                      <textarea name="" id="">
+                        {getActivityName(selected, targetLangKey)}
+                      </textarea>
                     </div>
                     <textarea
                       className="w-full h-80 p-2 border rounded"
                       value={translatedText}
                       onChange={(e) => setTranslatedText(e.target.value)}
-                      placeholder={`Enter ${getPlainLangName(targetLangKey)} translation...`}
+                      placeholder={`Enter ${getPlainLangName(
+                        targetLangKey
+                      )} translation...`}
                     />
                   </div>
                 </div>
@@ -316,11 +357,6 @@ export default function TextBased() {
   );
 }
 
-
-
-
-
-
 // the main working one // TextBased.tsx
 // import React, { useEffect, useState } from "react";
 
@@ -328,7 +364,7 @@ export default function TextBased() {
 //   const mapping = {
 //     "ActivityName_English": "ActivityName_English",
 
-//     "ActivityName_Hindi": "ActivityName_Hindi", 
+//     "ActivityName_Hindi": "ActivityName_Hindi",
 //     // "ActivityName_Telugu": "ActivityName_Telugu", // Assuming you'll add this
 //     // "ActivityName_Marathi": "ActivityName_Marathi",
 //   };
@@ -340,7 +376,7 @@ export default function TextBased() {
 // }
 
 // const LANG_KEYS = [
-//   { label: "English", key: "ActivityName_English" },    
+//   { label: "English", key: "ActivityName_English" },
 //   { label: "Hindi", key: "ActivityName_Hindi" },
 //   // { label: "Telugu", key: "ActivityName_Telugu" }, // Comment out if not available in API
 //   // { label: "Marathi", key: "ActivityName_Marathi" },
@@ -385,13 +421,13 @@ export default function TextBased() {
 
 //   const extractYouTubeId = (url) => {
 //     if (!url) return null;
-    
+
 //     // Handle different YouTube URL formats
 //     const patterns = [
 //       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
 //       /youtube\.com\/live\/([^&\n?#]+)/
 //     ];
-    
+
 //     for (const pattern of patterns) {
 //       const match = url.match(pattern);
 //       if (match) return match[1];
@@ -403,7 +439,7 @@ export default function TextBased() {
 //     setSelected(activity);
 //     const targetKey = getContentKeyFromActivityNameKey(targetLangKey);
 //     setTranslatedText(activity[targetKey] || "");
-    
+
 //     // Set YouTube link for embedding
 //     const youtubeId = extractYouTubeId(activity.url);
 //     setSelectedLink(youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : "");
@@ -432,8 +468,8 @@ export default function TextBased() {
 //       if (!res.ok) throw new Error("Save failed");
 
 //       alert("✅ Translation saved successfully");
-      
-//       // Refresh activities to get updated data after saving 
+
+//       // Refresh activities to get updated data after saving
 //       await handleLoad();
 
 //       // Reset the selected item to refresh translation text from updated data
@@ -443,7 +479,7 @@ export default function TextBased() {
 //         const targetKey = getContentKeyFromActivityNameKey(targetLangKey);
 //         setTranslatedText(updatedActivity[targetKey] || "");
 //       }
-      
+
 //     } catch (err) {
 //       console.error("❌ Save failed:", err);
 //       alert("❌ Failed to save translation");
@@ -495,7 +531,7 @@ export default function TextBased() {
 //             ))}
 //           </select>
 //         </div>
-        
+
 //         {/* Target Language */}
 //         <div>
 //           <label className="block font-medium">Target Language</label>
@@ -551,7 +587,7 @@ export default function TextBased() {
 //                   onClick={() => handleSelectActivity(activity)}
 //                 >
 //                   {/* <div className="text-sm font-semibold">
-                   
+
 //                     {index + 1}. {activity.todate && (
 //                     <div className="text-sm text-gray-500">📅 {formatDate(activity.todate)}</div>
 //                   )} {getSourceLangContent(activity).substring(0, 50)}
@@ -574,7 +610,7 @@ export default function TextBased() {
 //               <p className="text-gray-500 text-sm">No activities found for the selected source language.</p>
 //             )}
 //           </div>
-          
+
 //           {/* Translation Editor */}
 //           <div className="w-2/3">
 //             {selected ? (
@@ -582,7 +618,7 @@ export default function TextBased() {
 //                 {/* Activity Info */}
 //                 <div className="mb-4 p-3 bg-gray-50 rounded">
 //                   <div className="text-sm text-gray-600">
-//                     <strong>ID:</strong> {selected.id} | 
+//                     <strong>ID:</strong> {selected.id} |
 //                     <strong> Date:</strong> {formatDate(selected.todate)} |
 //                     <strong> Video:</strong> {selected.url ? "Available" : "Not available"}
 //                   </div>
@@ -598,14 +634,14 @@ export default function TextBased() {
 //                            <div className="mt-2 p-2 bg-gray-50 border rounded text-sm text-gray-700">
 //                           <strong>English:</strong> {selected.English}
 //                           </div>
-//                           )}             
+//                           )}
 //                     <textarea
 //                       className="w-full h-80 p-2 border rounded bg-gray-100"
 //                       readOnly
 //                       value={getSourceLangContent(selected)}
 //                     />
 //                   </div>
-                  
+
 //                   {/* Translation Section */}
 //                   <div className="flex-1">
 //                     <h3 className="text-lg font-semibold mb-2">
