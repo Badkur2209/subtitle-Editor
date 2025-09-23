@@ -443,7 +443,7 @@ export default function Prediction10Days() {
         <div>
           <label className="block font-medium">Source Language</label>
           <select
-            className="h-10 w-40 p-2 border rounded"
+            className="p-2 border rounded"
             value={sourceLangKey}
             onChange={(e) => setSourceLangKey(e.target.value)}
           >
@@ -454,7 +454,23 @@ export default function Prediction10Days() {
             ))}
           </select>
         </div>
-
+        <div className="flex items-center">
+          <svg
+            className="w-6 h-6 text-gray-800 dark:text-white"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 20 18"
+          >
+            <path
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="m1 14 3-3m-3 3 3 3m-3-3h16v-3m2-7-3 3m3-3-3-3m3 3H3v3"
+            ></path>
+          </svg>
+        </div>
         {/* Target Language */}
         <div>
           <label className="block font-medium">Target Language</label>
@@ -495,7 +511,7 @@ export default function Prediction10Days() {
 
         {/* Lagna Filter */}
         <div>
-          <label className="block font-medium">Filter by Lagna</label>
+          <label className="block font-medium mb-1">Filter by Lagna</label>
           <select
             className="p-2 border rounded"
             value={filterLagna}

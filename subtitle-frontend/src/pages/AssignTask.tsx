@@ -39,13 +39,17 @@ const LANGUAGES = [
 
 export default function AssignTask() {
   // Form states
-  const [fromDate, setFromDate] = useState<Date | null>(null);
-  const [toDate, setToDate] = useState<Date | null>(null);
+  const [fromDate, setFromDate] = useState<Date | null>(new Date());
+  const [toDate, setToDate] = useState<Date | null>(new Date());
   const { register, handleSubmit, setValue } = useForm();
   const [selectedChannel, setSelectedChannel] = useState("");
   const [translators, setTranslators] = useState([]);
   const [activeTab, setActiveTab] = useState("activities");
-
+  useEffect(() => {
+    const today = new Date();
+    setValue("fromDate", today);
+    setValue("toDate", today);
+  }, [setValue]);
   // Users state
   const [users, setUsers] = useState([]); // must be array
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -286,11 +290,14 @@ export default function AssignTask() {
                       <SelectValue placeholder="Select source language" />
                     </SelectTrigger>
                     <SelectContent>
-                      {LANGUAGES.map((lang) => (
-                        <SelectItem key={lang} value={lang}>
-                          {lang}
-                        </SelectItem>
-                      ))}
+                      {/* {LANGUAGES.map((lang) => ( */}
+                      {LANGUAGES.filter((lang) => lang !== targetLang).map(
+                        (lang) => (
+                          <SelectItem key={lang} value={lang}>
+                            {lang}
+                          </SelectItem>
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -307,11 +314,14 @@ export default function AssignTask() {
                       <SelectValue placeholder="Select target language" />
                     </SelectTrigger>
                     <SelectContent>
-                      {LANGUAGES.map((lang) => (
-                        <SelectItem key={lang} value={lang}>
-                          {lang}
-                        </SelectItem>
-                      ))}
+                      {/* {LANGUAGES.map((lang) => ( */}
+                      {LANGUAGES.filter((lang) => lang !== sourceLang).map(
+                        (lang) => (
+                          <SelectItem key={lang} value={lang}>
+                            {lang}
+                          </SelectItem>
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -473,11 +483,14 @@ export default function AssignTask() {
                       <SelectValue placeholder="Select source language" />
                     </SelectTrigger>
                     <SelectContent>
-                      {LANGUAGES.map((lang) => (
-                        <SelectItem key={lang} value={lang}>
-                          {lang}
-                        </SelectItem>
-                      ))}
+                      {/* {LANGUAGES.map((lang) => ( */}
+                      {LANGUAGES.filter((lang) => lang !== targetLang).map(
+                        (lang) => (
+                          <SelectItem key={lang} value={lang}>
+                            {lang}
+                          </SelectItem>
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -494,11 +507,14 @@ export default function AssignTask() {
                       <SelectValue placeholder="Select target language" />
                     </SelectTrigger>
                     <SelectContent>
-                      {LANGUAGES.map((lang) => (
-                        <SelectItem key={lang} value={lang}>
-                          {lang}
-                        </SelectItem>
-                      ))}
+                      {/* {LANGUAGES.map((lang) => ( */}
+                      {LANGUAGES.filter((lang) => lang !== sourceLang).map(
+                        (lang) => (
+                          <SelectItem key={lang} value={lang}>
+                            {lang}
+                          </SelectItem>
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -660,11 +676,14 @@ export default function AssignTask() {
                       <SelectValue placeholder="Select source language" />
                     </SelectTrigger>
                     <SelectContent>
-                      {LANGUAGES.map((lang) => (
-                        <SelectItem key={lang} value={lang}>
-                          {lang}
-                        </SelectItem>
-                      ))}
+                      {/* {LANGUAGES.map((lang) => ( */}
+                      {LANGUAGES.filter((lang) => lang !== targetLang).map(
+                        (lang) => (
+                          <SelectItem key={lang} value={lang}>
+                            {lang}
+                          </SelectItem>
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -681,11 +700,14 @@ export default function AssignTask() {
                       <SelectValue placeholder="Select target language" />
                     </SelectTrigger>
                     <SelectContent>
-                      {LANGUAGES.map((lang) => (
-                        <SelectItem key={lang} value={lang}>
-                          {lang}
-                        </SelectItem>
-                      ))}
+                      {/* {LANGUAGES.map((lang) => ( */}
+                      {LANGUAGES.filter((lang) => lang !== sourceLang).map(
+                        (lang) => (
+                          <SelectItem key={lang} value={lang}>
+                            {lang}
+                          </SelectItem>
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

@@ -88,28 +88,28 @@ export default function PredictionsDaily() {
     "Meen",
   ];
 
-  const handleLoad = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/predictions/predictions`
-        // "http://localhost:5000/api/predictions/predictions"
-        // "https://api.ayushcms.info/api/predictions/predictions"
-      );
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
-      const data = await response.json();
-      setActivities(data);
-      setLoaded(true);
-    } catch (err) {
-      console.error("❌ Error loading activities:", err);
-      alert(
-        "Failed to load activities. Please check if the server is running."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const handleLoad = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const response = await fetch(
+  //       `${API_BASE_URL}/predictions/predictions`
+  //       // "http://localhost:5000/api/predictions/predictions"
+  //       // "https://api.ayushcms.info/api/predictions/predictions"
+  //     );
+  //     if (!response.ok)
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+  //     const data = await response.json();
+  //     setActivities(data);
+  //     setLoaded(true);
+  //   } catch (err) {
+  //     console.error("❌ Error loading activities:", err);
+  //     alert(
+  //       "Failed to load activities. Please check if the server is running."
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // const languageSetList = useMemo(() => {
   //   console.log("🔍 useMemo running with:");
@@ -182,6 +182,36 @@ export default function PredictionsDaily() {
 
   //   return list;
   // }, [activities, sourceLangKey, targetLangKey, filterDate, filterLagna]);
+
+  const currentUsername = "hindi11@ayushcms.com"; // or get dynamically from auth
+
+  const handleLoad = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/predictions/predictions`);
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+
+      // Filter to only assigned_to currentUsername (case-insensitive)
+      const filteredData = data.filter(
+        (item) =>
+          item.assigned_to?.trim().toLowerCase() ===
+          currentUsername.trim().toLowerCase()
+      );
+
+      setActivities(filteredData); // or setPredictions(filteredData)
+      setLoaded(true);
+    } catch (err) {
+      console.error("❌ Error loading activities:", err);
+      alert(
+        "Failed to load activities. Please check if the server is running."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const languageSetList = useMemo(() => {
     const list = [];
     const dateFilter = filterDate ? new Date(filterDate) : null;
@@ -350,7 +380,23 @@ export default function PredictionsDaily() {
             ))}
           </select>
         </div>
-
+        <div className="flex items-center">
+          <svg
+            className="w-6 h-6 text-gray-800 dark:text-white"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 20 18"
+          >
+            <path
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="m1 14 3-3m-3 3 3 3m-3-3h16v-3m2-7-3 3m3-3-3-3m3 3H3v3"
+            ></path>
+          </svg>
+        </div>
         {/* Target Language */}
         <div>
           <label className="block font-medium">Target Language</label>
@@ -400,9 +446,11 @@ export default function PredictionsDaily() {
         <button
           type="button"
           className="mt-6 bg-red-600 text-white px-5 py-2 rounded disabled:bg-gray-400"
-          onClick={() => setFilterDate("")}
+          onClick={() => {
+            setFilterDate(""), setFilterLagna("");
+          }}
         >
-          Clear date
+          Clear Filter
         </button>
         <button
           className="mt-6 bg-blue-600 text-white px-5 py-2 rounded disabled:bg-gray-400"

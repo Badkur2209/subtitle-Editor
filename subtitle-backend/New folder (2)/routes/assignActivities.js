@@ -3,7 +3,28 @@ import ActivityData from "../models/ActivityData.js";
 // import { sequelize, activities } from "../db/index.js"; // ✅
 
 const router = express.Router();
+// router.get("/textbased/activities", async (req, res) => {
+//   try {
+//     const { assignedTo } = req.query;
+//     if (!assignedTo) {
+//       return res
+//         .status(400)
+//         .json({ error: "Missing assignedTo query parameter" });
+//     }
 
+//     const activities = await ActivityData.findAll({
+//       where: {
+//         assigned_to: assignedTo,
+//       },
+//       order: [["Date", "DESC"]], // optional for ordering
+//     });
+
+//     res.json(activities);
+//   } catch (error) {
+//     console.error("Error fetching activities:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
 // router.post("/assignActivities", async (req, res) => {
 //   try {
 //     const { userIds, fromDate, toDate, count } = req.body;
@@ -65,6 +86,26 @@ const router = express.Router();
 //     return res.status(500).json({ message: "Internal server error." });
 //   }
 // });
+
+router.get("/activities", async (req, res) => {
+  try {
+    const { assignedTo } = req.query;
+    if (!assignedTo) {
+      return res
+        .status(400)
+        .json({ error: "Missing assignedTo query parameter" });
+    }
+    const activities = await ActivityData.findAll({
+      where: { assigned_to: assignedTo }, // This should filter out null values
+      order: [["Date", "DESC"]],
+    });
+    res.json(activities);
+  } catch (error) {
+    console.error("Error fetching activities:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/assignActivities", async (req, res) => {
   try {
     const { userId, taskCount } = req.body;

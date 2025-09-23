@@ -65,31 +65,60 @@ export default function TextBased() {
     return null;
   };
   const currentUsername = "hindi11@ayushcms.com"; // hardcoded for now
+  // const handleLoad = async () => {
+  //   setLoading(true);
 
-  const handleLoad = async () => {
-    setLoading(true);
-    try {
-      const url = `${API_BASE_URL}/activities?assignedTo=${encodeURIComponent(
-        currentUsername
-      )}`;
-      const response = await fetch(url);
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
-      const data = await response.json();
-      const filteredByUser = data.filter(
-        (activity) => activity.assigned_to === currentUsername
-      );
-      setActivities(filteredByUser);
+  //   try {
+  //     const token = localStorage.getItem("token");
+  //     const url = `${API_BASE_URL}/activities`;
 
-      // setActivities(data); // sets only activities assigned to currentUsername
-      setLoaded(true);
-    } catch (err) {
-      console.error("Failed to load activities", err);
-      alert("Failed to load activities.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     const response = await fetch(url);
+  //     if (!response.ok)
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+
+  //     const data = await response.json();
+
+  //     // ADD: Extract the activities array from the response
+  //     const activitiesArray =
+  //       data.success && data.activities
+  //         ? data.activities // Use the nested array
+  //         : []; // Fallback to empty array
+
+  //     // Use activitiesArray instead of data
+  //     setActivities(activitiesArray);
+  //     setLoaded(true);
+  //   } catch (err) {
+  //     console.error("Failed to load activities", err);
+  //     alert("Failed to load activities.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  // const handleLoad = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const url = `${API_BASE_URL}/activities?assignedTo=${encodeURIComponent(
+  //       currentUsername
+  //     )}`;
+  //     const response = await fetch(url);
+  //     if (!response.ok)
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+  //     const data = await response.json();
+  //     const filteredByUser = data.filter(
+  //       (activity) => activity.assigned_to === currentUsername
+  //     );
+  //     setActivities(filteredByUser);
+
+  //     // setActivities(data); // sets only activities assigned to currentUsername
+  //     setLoaded(true);
+  //   } catch (err) {
+  //     console.error("Failed to load activities", err);
+  //     alert("Failed to load activities.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // const handleLoad = async () => {
   //   setLoading(true);
@@ -113,6 +142,52 @@ export default function TextBased() {
   //     setLoading(false);
   //   }
   // };
+  // const handleLoad = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const url = `${API_BASE_URL}/activities`; // Remove the query parameter `assignedTo`
+  //     const response = await fetch(url);
+  //     if (!response.ok)
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+  //     const data = await response.json();
+
+  //     // Set all activities, no filtering by assigned_to
+  //     setActivities(data);
+
+  //     setLoaded(true);
+  //   } catch (err) {
+  //     console.error("Failed to load activities", err);
+  //     alert("Failed to load activities.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  const handleLoad = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/activities`);
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+
+      // Assuming data.activities is the activities array
+      let activitiesArray =
+        data.success && data.activities ? data.activities : [];
+
+      // Filter activities where assigned_to matches currentUsername
+      const filteredByUser = activitiesArray.filter(
+        (activity) => activity.assigned_to === currentUsername
+      );
+
+      setActivities(filteredByUser);
+      setLoaded(true);
+    } catch (err) {
+      console.error("Failed to load activities", err);
+      alert("Failed to load activities.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     handleLoad(); // Auto-load on mount
@@ -260,6 +335,23 @@ export default function TextBased() {
             ))}
           </select>
         </div>
+        <div className="flex items-center">
+          <svg
+            className="w-6 h-6 text-gray-800 dark:text-white"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 20 18"
+          >
+            <path
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="m1 14 3-3m-3 3 3 3m-3-3h16v-3m2-7-3 3m3-3-3-3m3 3H3v3"
+            ></path>
+          </svg>
+        </div>
 
         <div>
           <label className="block font-medium">Target Language</label>
@@ -293,19 +385,21 @@ export default function TextBased() {
             </div>
           )}
         </div>
-      </div>
-      <div className="flex items-center gap-2 mt-1">
-        <div className="text-sm text-gray-600">
-          Selected: {new Date(filterDate).toLocaleDateString("en-GB")}
+        {/* <div className="flex items-center gap-2 mt-1"> */}
+        <div className="block font-medium">
+          <div className="text-sm text-gray-600">
+            Selected: {new Date(filterDate).toLocaleDateString("en-GB")}
+          </div>
+          <button
+            type="button"
+            onClick={() => setFilterDate("")}
+            className="mt-1 h-10 text-white bg-gray-500 hover:bg-gray-600 rounded px-5"
+          >
+            Clear
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setFilterDate("")}
-          className="text-sm text-blue-600 underline hover:text-blue-800"
-        >
-          Clear
-        </button>
       </div>
+
       {/* Video */}
       {/* {selectedLink && (
         <div className="mb-4">
@@ -352,7 +446,7 @@ export default function TextBased() {
               {filteredActivities.map((activity, index) => (
                 <li
                   key={activity.id}
-                  className={`p-2 border rounded cursor-pointer flex items-center justify-between ${
+                  className={`p-2 border rounded cursor-pointer flex item-center justify-between ${
                     selected?.id === activity.id
                       ? "bg-blue-100"
                       : "hover:bg-gray-100"
@@ -360,7 +454,7 @@ export default function TextBased() {
                   onClick={() => handleSelectActivity(activity)}
                 >
                   <div className="flex flex-col text-sm gap-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex item-center gap-2">
                       <span
                         className={`w-3 h-3 rounded-full ${getStatusColor(
                           activity.status

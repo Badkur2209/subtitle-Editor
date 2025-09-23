@@ -1,216 +1,1041 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../utils/config.ts";
 
-type Channel = {
+interface Channel {
   id: number;
   channel_name: string;
-};
+}
 
-type Video = {
+interface Video {
   id: number;
   video_title: string;
-  youtube_link: string;
-};
+  link: string;
+}
 
-const languages = [
-  { code: "en", label: "English" },
-  { code: "hi", label: "Hindi" },
-  { code: "mr", label: "Marathi" },
-  { code: "gu", label: "Gujarati" },
-  { code: "te", label: "Telugu" },
-  { code: "bn", label: "Bengali" },
+interface Segment {
+  start: string;
+  end: string;
+  text: string;
+}
+
+const LANG_KEYS = [
+  "english",
+  "hindi",
+  "marathi",
+  "bengali",
+  "gujarati",
+  "telugu",
 ];
 
 const Translate: React.FC = () => {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
-  const [selectedChannel, setSelectedChannel] = useState<number | null>(null);
-  const [selectedVideo, setSelectedVideo] = useState<number | null>(null);
-  const [selectedLink, setSelectedLink] = useState<string | null>(null);
-  const [language, setLanguage] = useState<string>("hi");
-  const [originalVtt, setOriginalVtt] = useState<string>("");
-  const [translatedVtt, setTranslatedVtt] = useState<string>("");
+  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [sourceLangKey, setSourceLangKey] = useState<string>("english");
+  const [targetLangKey, setTargetLangKey] = useState<string>("hindi");
+  const [segments, setSegments] = useState<Segment[]>([]);
+  const [translatedSegments, setTranslatedSegments] = useState<string[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState<boolean>(false);
 
-  // Fetch channels
+  // Prevent selecting same language
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/channels")
-      // .get("https://api.ayushcms.info/api/channels")
-      .then((res) => {
-        console.log("Channels API response:", res.data);
-        setChannels(res.data); // maybe you need res.data.channels
-      })
-      .catch((err) => console.error(err));
+    if (sourceLangKey === targetLangKey) {
+      const alternative =
+        LANG_KEYS.find((lang) => lang !== sourceLangKey) || "english";
+      setTargetLangKey(alternative);
+    }
+  }, [sourceLangKey, targetLangKey]);
+
+  // Load channels on mount
+  useEffect(() => {
+    const fetchChannels = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/channels`);
+        setChannels(res.data);
+      } catch (err) {
+        setError("Failed to load channels");
+      }
+    };
+    fetchChannels();
   }, []);
 
-  // Fetch videos for selected channel
+  // Load videos when channel changes
   useEffect(() => {
-    if (!selectedChannel) {
-      setVideos([]);
-      return;
-    }
-
-    axios
-      .get(`http://localhost:5000/api/videos/${selectedChannel}`)
-      // .get(`https://api.ayushcms.info/api/videos/${selectedChannel}`)
-      .then((res) => {
-        console.log("Videos API response:", res.data);
-        setVideos(Array.isArray(res.data) ? res.data : []);
-      })
-      .catch((err) => console.error("Error fetching videos:", err));
+    if (!selectedChannel) return;
+    const fetchVideos = async () => {
+      try {
+        //  `${API_BASE_URL}/textbased/save`,
+        const res = await axios.get(
+          `${API_BASE_URL}/videos/${selectedChannel.id}`
+        );
+        setVideos(res.data);
+      } catch (err) {
+        setError("Failed to load videos");
+      }
+    };
+    fetchVideos();
   }, [selectedChannel]);
 
-  // Load original VTT when video selected
+  // Auto-save every 30 sec
   useEffect(() => {
-    if (selectedVideo) {
-      axios
-        .get(`http://localhost:5000/api/vtt/${selectedVideo}`)
-        // .get(`https://api.ayushcms.info/api/vtt/${selectedVideo}`)
-        .then((res) => {
-          setOriginalVtt(res.data.content);
-          setSelectedLink(res.data.link);
-        });
-    }
-  }, [selectedVideo]);
-
-  const saveTranslation = async () => {
     if (!selectedVideo) return;
-    await axios.post(
-      `http://localhost:5000/api/vtt/${selectedVideo}/translate`,
-      // `https://api.ayushcms.info/api/vtt/${selectedVideo}/translate`,
-      {
-        language,
-        content: translatedVtt,
+    const interval = setInterval(() => {
+      handleSave();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [selectedVideo, translatedSegments]);
+
+  // Utility: Parse .vtt into segments
+  const parseVTT = (content: string): Segment[] => {
+    const lines = content.split("\n");
+    let segments: Segment[] = [];
+    let i = 0;
+    while (i < lines.length) {
+      if (lines[i].includes("-->")) {
+        const [start, end] = lines[i].split(" --> ").map((s) => s.trim());
+        let textLines: string[] = [];
+        i++;
+        while (i < lines.length && lines[i].trim() !== "") {
+          textLines.push(lines[i]);
+          i++;
+        }
+        segments.push({
+          start,
+          end,
+          text: textLines.join(" "),
+        });
       }
-    );
-    alert("Translation saved!");
+      i++;
+    }
+    return segments;
   };
 
-  const exportTranslation = () => {
-    const blob = new Blob([translatedVtt], { type: "text/vtt" });
+  // Utility: Build VTT back
+  const buildVTT = (segments: Segment[], translations: string[]): string => {
+    return (
+      "WEBVTT\n\n" +
+      segments
+        .map(
+          (seg, idx) =>
+            `${seg.start} --> ${seg.end}\n${translations[idx] || ""}\n`
+        )
+        .join("\n")
+    );
+  };
+
+  // Utility: Extract YouTube ID
+  const extractYouTubeId = (url: string): string | null => {
+    const match = url.match(/(?:v=|\.be\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+  };
+
+  // Handler: Load VTT
+  // const handleLoadVTT = async () => {
+  //   if (!selectedChannel || !selectedVideo) return;
+  //   setLoading(true);
+  //   setError(null);
+  //   try {
+  //     const res = await axios.get(`${API_BASE_URL}/vtt`, {
+  //       params: {
+  //         channel: selectedChannel.channel_name,
+  //         video: selectedVideo.video_title,
+  //       },
+  //     });
+  //     const parsed = parseVTT(res.data);
+  //     setSegments(parsed);
+  //     setTranslatedSegments(Array(parsed.length).fill(""));
+  //   } catch (err) {
+  //     setError("Failed to load VTT file");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  const handleLoadVTT = async () => {
+    if (!selectedVideo) return;
+    setLoading(true);
+    setError(null);
+    try {
+      // Now call backend with videoId (not channel + videoTitle)
+      const res = await axios.get(`${API_BASE_URL}/vtt/${selectedVideo.id}`);
+
+      const parsed = parseVTT(res.data.content);
+      setSegments(parsed);
+      setTranslatedSegments(Array(parsed.length).fill(""));
+
+      // You also get the YouTube link back if you want:
+      // res.data.link
+    } catch (err) {
+      setError("Failed to load VTT file");
+    } finally {
+      setLoading(false);
+    }
+  };
+  // Handler: Save VTT
+  // const handleSave = async () => {
+  //   if (!selectedVideo) return;
+  //   setSaving(true);
+  //   try {
+  //     const content = buildVTT(segments, translatedSegments);
+  //     await axios.post(`${API_BASE_URL}/vtt/${selectedVideo.id}/translate`, {
+  //       language: targetLangKey,
+  //       content,
+  //       userId: 1,
+  //       status: "in-progress",
+  //     });
+  //   } catch (err) {
+  //     setError("Failed to save translation");
+  //   } finally {
+  //     setSaving(false);
+  //   }
+  // };
+  const handleSave = async () => {
+    if (!selectedVideo) return;
+    setSaving(true);
+    try {
+      const content = buildVTT(segments, translatedSegments);
+      await axios.post(`${API_BASE_URL}/vtt/${selectedVideo.id}/translate`, {
+        language: targetLangKey,
+        content, // full WEBVTT string
+      });
+    } catch (err) {
+      setError("Failed to save translation");
+    } finally {
+      setSaving(false);
+    }
+  };
+  // Utility to sanitize filenames by removing unsupported characters
+  const sanitizeFilename = (name: string): string => {
+    return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
+  };
+  // Handler: Export to .vtt
+  const handleExport = () => {
+    if (!selectedVideo) return;
+    const content = buildVTT(segments, translatedSegments);
+    const blob = new Blob([content], { type: "text/vtt;charset=utf-8" });
     const url = URL.createObjectURL(blob);
+
+    // sanitize the file title
+    const safeTitle = sanitizeFilename(selectedVideo.video_title);
+    const filename = `${safeTitle}_${targetLangKey}.vtt`;
+
     const a = document.createElement("a");
     a.href = url;
-    a.download = `video_${selectedVideo}_${language}.vtt`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
   };
 
+  const videoId = selectedVideo ? extractYouTubeId(selectedVideo.link) : null;
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Translate Subtitles</h1>
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold mb-4">VTT Translator</h1>
 
-      {/* Select channel */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <select
-          className="p-2 border rounded"
-          value={selectedChannel || ""}
-          onChange={(e) => setSelectedChannel(Number(e.target.value))}
-        >
-          <option value="">Select Channel</option>
-          {Array.isArray(channels) &&
-            channels.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.channel_name}
-              </option>
-            ))}
-        </select>
+      {error && <p className="text-red-500">{error}</p>}
+      {loading && <p className="text-blue-500">Loading...</p>}
+      {saving && <p className="text-green-500">Saving...</p>}
 
-        {/* Select video */}
-        <select
-          className="p-2 border rounded"
-          value={selectedVideo || ""}
-          onChange={(e) => setSelectedVideo(Number(e.target.value))}
-        >
-          <option value="">Select Video</option>
-          {Array.isArray(videos) &&
-            videos.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.video_title}
-              </option>
-            ))}
-        </select>
+      {/* Channel selector */}
+      <select
+        className="border p-2 mr-4"
+        onChange={(e) =>
+          setSelectedChannel(
+            channels.find((ch) => ch.id === Number(e.target.value)) || null
+          )
+        }
+      >
+        <option value="">Select Channel</option>
+        {channels.map((ch) => (
+          <option key={ch.id} value={ch.id}>
+            {ch.channel_name}
+          </option>
+        ))}
+      </select>
 
-        {/* Select language */}
+      {/* Video selector */}
+      <select
+        className="border p-2 mr-4"
+        onChange={(e) =>
+          setSelectedVideo(
+            videos.find((v) => v.id === Number(e.target.value)) || null
+          )
+        }
+      >
+        <option value="">Select Video</option>
+        {videos.map((v) => (
+          <option key={v.id} value={v.id}>
+            {v.video_title}
+          </option>
+        ))}
+      </select>
+
+      {/* Language selectors */}
+      <div className="flex space-x-4">
         <select
-          className="p-2 border rounded"
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
+          value={sourceLangKey}
+          onChange={(e) => setSourceLangKey(e.target.value)}
+          className="border p-2"
         >
-          {languages.map((l) => (
-            <option key={l.code} value={l.code}>
-              {l.label}
+          {LANG_KEYS.map((lang) => (
+            <option key={lang} value={lang}>
+              {lang}
             </option>
           ))}
         </select>
-
-        {/* Load button */}
-        <button
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-          onClick={() => {
-            selectedVideo && console.log("Loading VTT...");
-          }}
+        <select
+          value={targetLangKey}
+          onChange={(e) => setTargetLangKey(e.target.value)}
+          className="border p-2"
         >
-          Load VTT
-        </button>
+          {LANG_KEYS.map((lang) => (
+            <option key={lang} value={lang}>
+              {lang}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* YouTube embed */}
-      {selectedLink && (
-        <div className="mb-6">
-          <h3 className="font-semibold mb-2">Related Video</h3>
-          <iframe
-            className="w-full h-64 rounded"
-            src={`https://www.youtube.com/embed/${extractYouTubeId(
-              selectedLink
-            )}?rel=0`}
-            allowFullScreen
-            title="Related Video"
-          />
-        </div>
+      {videoId && (
+        <iframe
+          className="w-full h-64"
+          src={`https://www.youtube.com/embed/${videoId}`}
+          title="YouTube player"
+          allowFullScreen
+        />
       )}
 
-      {/* VTT editor */}
-      <div className="grid grid-cols-2 gap-4">
-        <textarea
-          className="w-full h-80 border p-2 rounded"
-          value={originalVtt}
-          readOnly
-        />
-        <textarea
-          className="w-full h-80 border p-2 rounded"
-          value={translatedVtt}
-          onChange={(e) => setTranslatedVtt(e.target.value)}
-        />
-      </div>
+      {/* Load button */}
+      <button
+        onClick={handleLoadVTT}
+        className="bg-blue-500 text-white px-4 py-2 rounded"
+      >
+        Load VTT
+      </button>
 
-      {/* Buttons */}
-      <div className="flex gap-4 mt-6">
+      {/* Grid for subtitles */}
+      {/*<div className="grid grid-cols-2 gap-4">
+        {segments.map((seg, idx) => (
+          <React.Fragment key={idx}>
+            <textarea
+              readOnly
+              value={seg.text}
+              className="w-full border p-2 bg-gray-100"
+            />
+            <textarea
+              value={translatedSegments[idx]}
+              onChange={(e) => {
+                const copy = [...translatedSegments];
+                copy[idx] = e.target.value;
+                setTranslatedSegments(copy);
+              }}
+              className="w-full border p-2"
+              placeholder="Type translation..."
+            />
+          </React.Fragment>
+        ))}
+      </div>*/}
+      <table className="table-auto w-full border-collapse border border-gray-400">
+        <thead className="bg-gray-200">
+          <tr>
+            <th className="border p-2">#</th>
+            <th className="border p-2">Start</th>
+            <th className="border p-2">End</th>
+            <th className="border p-2">Original</th>
+            <th className="border p-2">Translation</th>
+          </tr>
+        </thead>
+        <tbody>
+          {segments.map((seg, idx) => (
+            <tr key={idx}>
+              <td className="border p-2 text-center">{idx + 1}</td>
+              <td className="border p-2">{seg.start}</td>
+              <td className="border p-2">{seg.end}</td>
+              <td className="border p-2 bg-gray-100">{seg.text}</td>
+              <td className="border p-2">
+                <textarea
+                  value={translatedSegments[idx]}
+                  onChange={(e) => {
+                    const copy = [...translatedSegments];
+                    copy[idx] = e.target.value;
+                    setTranslatedSegments(copy);
+                  }}
+                  className="w-full border p-1"
+                  placeholder="Type translation..."
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {/* Save and Export */}
+      <div className="flex space-x-4">
         <button
-          className="bg-green-500 text-white px-6 py-2 rounded"
-          onClick={saveTranslation}
+          onClick={handleSave}
+          className="bg-green-500 text-white px-4 py-2 rounded"
         >
-          Save
+          Save Now
         </button>
         <button
-          className="bg-gray-500 text-white px-6 py-2 rounded"
-          onClick={exportTranslation}
+          onClick={handleExport}
+          className="bg-purple-500 text-white px-4 py-2 rounded"
         >
-          Export
+          Export .vtt
         </button>
       </div>
     </div>
   );
 };
 
-// Helper to extract YouTube ID
-function extractYouTubeId(url: string) {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  return match && match[2].length === 11 ? match[2] : "";
-}
-
 export default Translate;
+// import React, { useState, useEffect } from "react";
+// import axios from "axios";
+
+// // Types
+// type Channel = {
+//   id: number;
+//   channel_name: string;
+// };
+
+// type Video = {
+//   id: number;
+//   video_title: string;
+//   youtube_link: string;
+// };
+
+// type SubtitleSegment = {
+//   start: string;
+//   end: string;
+//   text: string;
+// };
+// const LANG_KEYS = [
+//   { label: "English", key: "act_en", dataKey: "en", langId: "english" },
+//   { label: "Hindi", key: "act_hi", dataKey: "hi", langId: "hindi" },
+//   { label: "Telugu", key: "act_te", dataKey: "te", langId: "telugu" },
+//   { label: "Marathi", key: "act_mr", dataKey: "mr", langId: "marathi" },
+//   { label: "Gujarati", key: "act_gu", dataKey: "gu", langId: "gujarati" },
+//   { label: "Bengali", key: "act_bn", dataKey: "bn", langId: "bengali" },
+// ];
+// const languages = [
+//   { code: "en", label: "English" },
+//   { code: "hi", label: "Hindi" },
+//   { code: "mr", label: "Marathi" },
+//   { code: "gu", label: "Gujarati" },
+//   { code: "te", label: "Telugu" },
+//   { code: "bn", label: "Bengali" },
+// ];
+
+// const Translate: React.FC = () => {
+//   const [channels, setChannels] = useState<Channel[]>([]);
+//   const [videos, setVideos] = useState<Video[]>([]);
+//   const [selectedChannel, setSelectedChannel] = useState<number | null>(null);
+//   const [selectedVideo, setSelectedVideo] = useState<number | null>(null);
+//   const [sourceLangKey, setSourceLangKey] = useState("act_hi");
+//   const [targetLangKey, setTargetLangKey] = useState("act_en");
+//   const [selectedLink, setSelectedLink] = useState<string | null>(null);
+//   const [language, setLanguage] = useState<string>("hi");
+//   const [segments, setSegments] = useState<SubtitleSegment[]>([]);
+//   const [translatedSegments, setTranslatedSegments] = useState<string[]>([]);
+//   const [loading, setLoading] = useState(false);
+//   const [error, setError] = useState<string | null>(null);
+//   const [saving, setSaving] = useState(false);
+
+//   // Fetch channels
+//   useEffect(() => {
+//     setLoading(true);
+//     axios
+//       .get("http://localhost:5000/api/channels")
+//       .then((res) => setChannels(res.data))
+//       .catch(() => setError("Failed to fetch channels."))
+//       .finally(() => setLoading(false));
+//   }, []);
+//   // Clear segments when video selection changes
+//   useEffect(() => {
+//     setSegments([]);
+//     setTranslatedSegments([]);
+//     setSelectedLink(null);
+//     setError(null);
+//   }, [selectedVideo]);
+
+//   // Fetch videos for selected channel
+//   useEffect(() => {
+//     if (!selectedChannel) {
+//       setVideos([]);
+//       return;
+//     }
+//     setLoading(true);
+//     axios
+//       .get(`http://localhost:5000/api/videos/${selectedChannel}`)
+//       .then((res) => setVideos(Array.isArray(res.data) ? res.data : []))
+//       .catch(() => setError("Failed to fetch videos."))
+//       .finally(() => setLoading(false));
+//   }, [selectedChannel]);
+
+//   // Load original VTT when video selected
+//   // useEffect(() => {
+//   //   if (!selectedVideo) return;
+//   //   setLoading(true);
+//   //   axios
+//   //     .get(`http://localhost:5000/api/vtt/${selectedVideo}`)
+//   //     .then((res) => {
+//   //       setSelectedLink(res.data.link);
+//   //       const parsedSegments = parseVTT(res.data.content);
+//   //       setSegments(parsedSegments);
+//   //       setTranslatedSegments(parsedSegments.map(() => "")); // Empty translation initially
+//   //     })
+//   //     .catch(() => setError("Failed to load subtitles."))
+//   //     .finally(() => setLoading(false));
+//   // }, [selectedVideo]);
+
+//   // const handleLoadVTT = () => {
+//   //   if (!selectedVideo) return;
+//   //   setLoading(true);
+//   //   setError(null);
+//   //   setSegments([]);
+//   //   setTranslatedSegments([]);
+
+//   //   axios
+//   //     .get(`http://localhost:5000/api/vtt/${selectedVideo}`)
+//   //     .then((res) => {
+//   //       setSelectedLink(res.data.link);
+//   //       const parsedSegments = parseVTT(res.data.content);
+//   //       setSegments(parsedSegments);
+//   //       setTranslatedSegments(parsedSegments.map(() => ""));
+//   //     })
+//   //     .catch(() => setError("Failed to load subtitles."))
+//   //     .finally(() => setLoading(false));
+//   // };
+//   const handleLoadVTT = () => {
+//     if (!selectedChannel || !selectedVideo) return;
+//     setLoading(true);
+//     setError(null);
+//     setSegments([]);
+//     setTranslatedSegments([]);
+
+//     // Find the channel_name for the selectedChannel id
+//     const channel = channels.find((c) => c.id === selectedChannel);
+//     if (!channel) {
+//       setError("Channel not found");
+//       setLoading(false);
+//       return;
+//     }
+
+//     axios
+//       .get(
+//         `http://localhost:5000/api/vtt?channel=${encodeURIComponent(
+//           channel.channel_name
+//         )}&video=${encodeURIComponent(
+//           videos.find((v) => v.id === selectedVideo)?.video_title || ""
+//         )}`
+//       )
+//       .then((res) => {
+//         setSelectedLink(res.data.link);
+//         const parsedSegments = parseVTT(res.data.content);
+//         setSegments(parsedSegments);
+//         setTranslatedSegments(parsedSegments.map(() => ""));
+//       })
+//       .catch(() => setError("Failed to load subtitles."))
+//       .finally(() => setLoading(false));
+//   };
+
+//   // Auto-save every 30s
+//   useEffect(() => {
+//     if (!selectedVideo) return;
+//     const interval = setInterval(() => {
+//       if (translatedSegments.some((t) => t.trim() !== "")) {
+//         saveTranslation(true);
+//       }
+//     }, 30000);
+//     return () => clearInterval(interval);
+//   }, [translatedSegments, selectedVideo]);
+
+//   const handleSegmentChange = (index: number, value: string) => {
+//     const updated = [...translatedSegments];
+//     updated[index] = value;
+//     setTranslatedSegments(updated);
+//   };
+
+//   const saveTranslation = async (silent = false) => {
+//     if (!selectedVideo) return;
+//     setSaving(true);
+//     try {
+//       await axios.post(
+//         `http://localhost:5000/api/vtt/${selectedVideo}/translate`,
+//         {
+//           language,
+//           content: buildVTT(segments, translatedSegments),
+//           userId: 1, // Replace with logged-in user ID
+//           status: "draft",
+//         }
+//       );
+//       if (!silent) alert("Translation saved!");
+//     } catch (err) {
+//       if (!silent) alert("Failed to save translation.");
+//     } finally {
+//       setSaving(false);
+//     }
+//   };
+
+//   const exportTranslation = () => {
+//     const blob = new Blob([buildVTT(segments, translatedSegments)], {
+//       type: "text/vtt",
+//     });
+//     const url = URL.createObjectURL(blob);
+//     const a = document.createElement("a");
+//     a.href = url;
+//     a.download = `video_${selectedVideo}_${language}.vtt`;
+//     a.click();
+//     URL.revokeObjectURL(url);
+//   };
+
+//   return (
+//     <div className="p-6">
+//       <h1 className="text-2xl font-bold mb-6">Translate Subtitles</h1>
+//       {loading && <p className="text-blue-500">Loading...</p>}
+//       {error && <p className="text-red-500">{error}</p>}
+//       <div className="flex gap-4 mb-4">
+//         {/* Language Selectors */}
+//         <div>
+//           <label className="block font-medium">Source Language</label>
+//           <select
+//             className="p-2 border rounded"
+//             value={sourceLangKey}
+//             onChange={(e) => {
+//               const newSource = e.target.value;
+//               setSourceLangKey(newSource);
+//               if (newSource === targetLangKey) {
+//                 const fallback = LANG_KEYS.find((k) => k.key !== newSource);
+//                 setTargetLangKey(fallback?.key || "act_hi");
+//               }
+//             }}
+//           >
+//             {LANG_KEYS.map((lang) => (
+//               <option key={lang.key} value={lang.key}>
+//                 {lang.label}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+//         {/* target language  */}
+//         <div>
+//           <label className="block font-medium">Target Language</label>
+//           <select
+//             className="p-2 border rounded"
+//             value={targetLangKey}
+//             onChange={(e) => setTargetLangKey(e.target.value)}
+//           >
+//             {LANG_KEYS.filter((lang) => lang.key !== sourceLangKey).map(
+//               (lang) => (
+//                 <option key={lang.key} value={lang.key}>
+//                   {lang.label}
+//                 </option>
+//               )
+//             )}
+//           </select>
+//         </div>
+//         {/* Channel / Video / Language Selection */}
+//         <div>
+//           {" "}
+//           <label className="block font-medium">Channel</label>
+//           <select
+//             className="p-2 border rounded"
+//             value={selectedChannel || ""}
+//             onChange={(e) => setSelectedChannel(Number(e.target.value))}
+//           >
+//             <option value="">Select Channel</option>
+//             {channels.map((c) => (
+//               <option key={c.id} value={c.id}>
+//                 {c.channel_name}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+
+//         {/* select video */}
+//         <div>
+//           <label className="block font-medium">Video</label>
+//           <select
+//             className="p-2 w-40 border rounded "
+//             value={selectedVideo || ""}
+//             onChange={(e) => setSelectedVideo(Number(e.target.value))}
+//           >
+//             <option value="">Select Video</option>
+//             {videos.map((v) => (
+//               <option key={v.id} value={v.id}>
+//                 {v.video_title}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+
+//         {/* load button */}
+
+//         <button
+//           className="mt-7 h-10 text-white bg-blue-700 hover:bg-blue-800 rounded px-5"
+//           onClick={handleLoadVTT}
+//           disabled={!selectedChannel || !selectedVideo || loading}
+//         >
+//           {loading ? "Loading..." : "Load VTT"}
+//         </button>
+
+//         {/* <button
+//           className="bg-blue-500 text-white px-4 py-2 rounded"
+//           onClick={() => selectedVideo && console.log("Reloading VTT...")}
+//         >
+//           Load VTT
+//         </button> */}
+//       </div>
+
+//       {selectedLink && (
+//         <div className="mb-6">
+//           <h3 className="font-semibold mb-2">Related Video</h3>
+//           <iframe
+//             className="w-full h-64 rounded"
+//             src={`https://www.youtube.com/embed/${extractYouTubeId(
+//               selectedLink
+//             )}?rel=0`}
+//             allowFullScreen
+//             title="Related Video"
+//           />
+//         </div>
+//       )}
+
+//       {/* Segment-based VTT Editor */}
+//       {/* <div className="space-y-2">
+//         {segments.map((seg, index) => (
+//           <div key={index} className="grid grid-cols-3 gap-2 items-center">
+//             <span className="text-sm text-gray-500">
+//               {seg.start} → {seg.end}
+//             </span>
+//             <textarea
+//               className="col-span-1 border p-1 rounded bg-gray-100 text-xs"
+//               value={seg.text}
+//               readOnly
+//             />
+//             <textarea
+//               className="col-span-1 border p-1 rounded text-xs"
+//               value={translatedSegments[index]}
+//               onChange={(e) => handleSegmentChange(index, e.target.value)}
+//             />
+//           </div>
+//         ))}
+//       </div> */}
+//       {/* Show editor only when segments are loaded */}
+//       {segments.length > 0 && (
+//         <>
+//           {/* Segment-based VTT Editor */}
+//           <div className="space-y-2">
+//             {segments.map((seg, index) => (
+//               <div key={index} className="grid grid-cols-3 gap-2 items-center">
+//                 <span className="text-sm text-gray-500">
+//                   {seg.start} → {seg.end}
+//                 </span>
+//                 <textarea
+//                   className="col-span-1 border p-1 rounded bg-gray-100 text-xs"
+//                   value={seg.text}
+//                   readOnly
+//                 />
+//                 <textarea
+//                   className="col-span-1 border p-1 rounded text-xs"
+//                   value={translatedSegments[index]}
+//                   onChange={(e) => handleSegmentChange(index, e.target.value)}
+//                 />
+//               </div>
+//             ))}
+//           </div>
+
+//           <div className="flex gap-4 mt-6">
+//             <button
+//               className="bg-green-500 text-white px-6 py-2 rounded disabled:opacity-50"
+//               onClick={() => saveTranslation(false)}
+//               disabled={saving}
+//             >
+//               {saving ? "Saving..." : "Save"}
+//             </button>
+//             <button
+//               className="bg-gray-500 text-white px-6 py-2 rounded"
+//               onClick={exportTranslation}
+//             >
+//               Export
+//             </button>
+//           </div>
+//         </>
+//       )}
+
+//       {/* <div className="flex gap-4 mt-6">
+//         <button
+//           className="bg-green-500 text-white px-6 py-2 rounded disabled:opacity-50"
+//           onClick={() => saveTranslation(false)}
+//           disabled={saving}
+//         >
+//           {saving ? "Saving..." : "Save"}
+//         </button>
+//         <button
+//           className="bg-gray-500 text-white px-6 py-2 rounded"
+//           onClick={exportTranslation}
+//         >
+//           Export
+//         </button>
+//       </div> */}
+//     </div>
+//   );
+// };
+
+// function extractYouTubeId(url: string) {
+//   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+//   const match = url.match(regExp);
+//   return match && match[2].length === 11 ? match[2] : "";
+// }
+
+// // Parse VTT into segments
+// function parseVTT(vtt: string): SubtitleSegment[] {
+//   const lines = vtt.split("\n");
+//   const segments: SubtitleSegment[] = [];
+//   let current: Partial<SubtitleSegment> = {};
+//   for (const line of lines) {
+//     if (line.includes("-->")) {
+//       const [start, end] = line.split(" --> ");
+//       current = { start, end, text: "" };
+//     } else if (line.trim() === "") {
+//       if (current.start && current.end)
+//         segments.push(current as SubtitleSegment);
+//       current = {};
+//     } else {
+//       current.text = (current.text || "") + line + " ";
+//     }
+//   }
+//   return segments;
+// }
+
+// // Build VTT back from segments
+// function buildVTT(segments: SubtitleSegment[], translations: string[]): string {
+//   return (
+//     "WEBVTT\n\n" +
+//     segments
+//       .map((s, i) => `${s.start} --> ${s.end}\n${translations[i] || ""}\n`)
+//       .join("\n")
+//   );
+// }
+
+// export default Translate;
+
+// import React, { useState, useEffect } from "react";
+// import axios from "axios";
+
+// type Channel = {
+//   id: number;
+//   channel_name: string;
+// };
+
+// type Video = {
+//   id: number;
+//   video_title: string;
+//   youtube_link: string;
+// };
+
+// const languages = [
+//   { code: "en", label: "English" },
+//   { code: "hi", label: "Hindi" },
+//   { code: "mr", label: "Marathi" },
+//   { code: "gu", label: "Gujarati" },
+//   { code: "te", label: "Telugu" },
+//   { code: "bn", label: "Bengali" },
+// ];
+
+// const Translate: React.FC = () => {
+//   const [channels, setChannels] = useState<Channel[]>([]);
+//   const [videos, setVideos] = useState<Video[]>([]);
+//   const [selectedChannel, setSelectedChannel] = useState<number | null>(null);
+//   const [selectedVideo, setSelectedVideo] = useState<number | null>(null);
+//   const [selectedLink, setSelectedLink] = useState<string | null>(null);
+//   const [language, setLanguage] = useState<string>("hi");
+//   const [originalVtt, setOriginalVtt] = useState<string>("");
+//   const [translatedVtt, setTranslatedVtt] = useState<string>("");
+
+//   // Fetch channels
+//   useEffect(() => {
+//     axios
+//       .get("http://localhost:5000/api/channels")
+//       // .get("https://api.ayushcms.info/api/channels")
+//       .then((res) => {
+//         console.log("Channels API response:", res.data);
+//         setChannels(res.data); // maybe you need res.data.channels
+//       })
+//       .catch((err) => console.error(err));
+//   }, []);
+
+//   // Fetch videos for selected channel
+//   useEffect(() => {
+//     if (!selectedChannel) {
+//       setVideos([]);
+//       return;
+//     }
+
+//     axios
+//       .get(`http://localhost:5000/api/videos/${selectedChannel}`)
+//       // .get(`https://api.ayushcms.info/api/videos/${selectedChannel}`)
+//       .then((res) => {
+//         console.log("Videos API response:", res.data);
+//         setVideos(Array.isArray(res.data) ? res.data : []);
+//       })
+//       .catch((err) => console.error("Error fetching videos:", err));
+//   }, [selectedChannel]);
+
+//   // Load original VTT when video selected
+//   useEffect(() => {
+//     if (selectedVideo) {
+//       axios
+//         .get(`http://localhost:5000/api/vtt/${selectedVideo}`)
+//         // .get(`https://api.ayushcms.info/api/vtt/${selectedVideo}`)
+//         .then((res) => {
+//           setOriginalVtt(res.data.content);
+//           setSelectedLink(res.data.link);
+//         });
+//     }
+//   }, [selectedVideo]);
+
+//   const saveTranslation = async () => {
+//     if (!selectedVideo) return;
+//     await axios.post(
+//       `http://localhost:5000/api/vtt/${selectedVideo}/translate`,
+//       // `https://api.ayushcms.info/api/vtt/${selectedVideo}/translate`,
+//       {
+//         language,
+//         content: translatedVtt,
+//       }
+//     );
+//     alert("Translation saved!");
+//   };
+
+//   const exportTranslation = () => {
+//     const blob = new Blob([translatedVtt], { type: "text/vtt" });
+//     const url = URL.createObjectURL(blob);
+//     const a = document.createElement("a");
+//     a.href = url;
+//     a.download = `video_${selectedVideo}_${language}.vtt`;
+//     a.click();
+//     URL.revokeObjectURL(url);
+//   };
+
+//   return (
+//     <div className="p-6">
+//       <h1 className="text-2xl font-bold mb-6">Translate Subtitles</h1>
+
+//       {/* Select channel */}
+//       <div className="grid grid-cols-4 gap-4 mb-6">
+//         <select
+//           className="p-2 border rounded"
+//           value={selectedChannel || ""}
+//           onChange={(e) => setSelectedChannel(Number(e.target.value))}
+//         >
+//           <option value="">Select Channel</option>
+//           {Array.isArray(channels) &&
+//             channels.map((c) => (
+//               <option key={c.id} value={c.id}>
+//                 {c.channel_name}
+//               </option>
+//             ))}
+//         </select>
+
+//         {/* Select video */}
+//         <select
+//           className="p-2 border rounded"
+//           value={selectedVideo || ""}
+//           onChange={(e) => setSelectedVideo(Number(e.target.value))}
+//         >
+//           <option value="">Select Video</option>
+//           {Array.isArray(videos) &&
+//             videos.map((v) => (
+//               <option key={v.id} value={v.id}>
+//                 {v.video_title}
+//               </option>
+//             ))}
+//         </select>
+
+//         {/* Select language */}
+//         <select
+//           className="p-2 border rounded"
+//           value={language}
+//           onChange={(e) => setLanguage(e.target.value)}
+//         >
+//           {languages.map((l) => (
+//             <option key={l.code} value={l.code}>
+//               {l.label}
+//             </option>
+//           ))}
+//         </select>
+
+//         {/* Load button */}
+//         <button
+//           className="bg-blue-500 text-white px-4 py-2 rounded"
+//           onClick={() => {
+//             selectedVideo && console.log("Loading VTT...");
+//           }}
+//         >
+//           Load VTT
+//         </button>
+//       </div>
+
+//       {/* YouTube embed */}
+//       {selectedLink && (
+//         <div className="mb-6">
+//           <h3 className="font-semibold mb-2">Related Video</h3>
+//           <iframe
+//             className="w-full h-64 rounded"
+//             src={`https://www.youtube.com/embed/${extractYouTubeId(
+//               selectedLink
+//             )}?rel=0`}
+//             allowFullScreen
+//             title="Related Video"
+//           />
+//         </div>
+//       )}
+
+//       {/* VTT editor */}
+//       <div className="grid grid-cols-2 gap-4">
+//         <textarea
+//           className="w-full h-80 border p-2 rounded"
+//           value={originalVtt}
+//           readOnly
+//         />
+//         <textarea
+//           className="w-full h-80 border p-2 rounded"
+//           value={translatedVtt}
+//           onChange={(e) => setTranslatedVtt(e.target.value)}
+//         />
+//       </div>
+
+//       {/* Buttons */}
+//       <div className="flex gap-4 mt-6">
+//         <button
+//           className="bg-green-500 text-white px-6 py-2 rounded"
+//           onClick={saveTranslation}
+//         >
+//           Save
+//         </button>
+//         <button
+//           className="bg-gray-500 text-white px-6 py-2 rounded"
+//           onClick={exportTranslation}
+//         >
+//           Export
+//         </button>
+//       </div>
+//     </div>
+//   );
+// };
+
+// // Helper to extract YouTube ID
+// function extractYouTubeId(url: string) {
+//   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+//   const match = url.match(regExp);
+//   return match && match[2].length === 11 ? match[2] : "";
+// }
+
+// export default Translate;
 
 // import React, { useEffect, useState } from "react";
 // import { useAuth } from "@/contexts/AuthContext";

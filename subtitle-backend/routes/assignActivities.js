@@ -3,6 +3,38 @@ import ActivityData from "../models/ActivityData.js";
 // import { sequelize, activities } from "../db/index.js"; // ✅
 
 const router = express.Router();
+
+router.get("/activities", async (req, res) => {
+  try {
+    const { status, date, assignedTo } = req.query;
+    const conditions = {};
+
+    // Add filters only if they exist
+    if (status) conditions.status = status;
+    if (date) conditions.Date = date;
+    if (assignedTo) conditions.assigned_to = assignedTo;
+
+    // Fetch all activities if no conditions, or filtered activities
+    const activities = await ActivityData.findAll({
+      where: Object.keys(conditions).length > 0 ? conditions : {},
+      order: [["Date", "DESC"]], // Add ordering
+    });
+
+    res.status(200).json({
+      success: true,
+      count: activities.length,
+      activities: activities,
+    });
+  } catch (error) {
+    console.error("Error fetching activities:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching activities",
+      error: error.message,
+    });
+  }
+});
+
 // router.get("/textbased/activities", async (req, res) => {
 //   try {
 //     const { assignedTo } = req.query;
@@ -87,24 +119,24 @@ const router = express.Router();
 //   }
 // });
 
-router.get("/activities", async (req, res) => {
-  try {
-    const { assignedTo } = req.query;
-    if (!assignedTo) {
-      return res
-        .status(400)
-        .json({ error: "Missing assignedTo query parameter" });
-    }
-    const activities = await ActivityData.findAll({
-      where: { assigned_to: assignedTo }, // This should filter out null values
-      order: [["Date", "DESC"]],
-    });
-    res.json(activities);
-  } catch (error) {
-    console.error("Error fetching activities:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+// router.get("/activities", async (req, res) => {
+//   try {
+//     const { assignedTo } = req.query;
+//     if (!assignedTo) {
+//       return res
+//         .status(400)
+//         .json({ error: "Missing assignedTo query parameter" });
+//     }
+//     const activities = await ActivityData.findAll({
+//       where: { assigned_to: assignedTo }, // This should filter out null values
+//       order: [["Date", "DESC"]],
+//     });
+//     res.json(activities);
+//   } catch (error) {
+//     console.error("Error fetching activities:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
 
 router.post("/assignActivities", async (req, res) => {
   try {

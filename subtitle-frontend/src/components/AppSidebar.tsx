@@ -28,6 +28,7 @@ const navigationItems = [
   { title: "Activities", url: "/Activities", icon: FileText },
   { title: "PredictionsDaily", url: "/PredictionsDaily", icon: FileText },
   { title: "Predictions10Days", url: "/Predictions10Days", icon: FileText },
+  { title: "Translate", url: "/translate", icon: FileText },
   { title: "Uploader", url: "/Uploader", icon: FileText },
   { title: "Task Status", url: "/TaskStatus", icon: FileText },
   { title: "Update User Status", url: "/UpdateUserStatus", icon: FileText },
@@ -35,7 +36,6 @@ const navigationItems = [
   { title: "Stats Youtube", url: "/stats-youtube", icon: BarChart3 },
   { title: "User-info", url: "/user-info", icon: User },
   { title: "VTT files stats", url: "/vtt-files-stats", icon: FileText },
-  { title: "Translate", url: "/translate", icon: FileText },
 ];
 
 const bottomItems = [

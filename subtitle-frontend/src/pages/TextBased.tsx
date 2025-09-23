@@ -18,7 +18,6 @@ function getPlainLangName(langKey) {
   }
   return langKey;
 }
-
 export default function TextBased() {
   const [activities, setActivities] = useState([]);
   const [selected, setSelected] = useState(null);

@@ -6,7 +6,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-
+import { API_BASE_URL } from "../utils/config.ts";
 //// Change back to:
 //'https://api.ayushcms.info/api/auth/login'
 //'https://api.ayushcms.info/api/auth/verify'
@@ -67,7 +67,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await fetch(
         // "https://api.ayushcms.info/api/auth/verify",
-        "http://localhost:5000/api/auth/verify",
+        // "http://localhost:5000/api/auth/verify",
+        `${API_BASE_URL}/auth/verify`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -94,7 +95,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log("🔐 Logging in with", username, password);
       // const response = await fetch("https://api.ayushcms.info/api/auth/login", {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
+      // const response = await fetch("http://localhost:5000/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

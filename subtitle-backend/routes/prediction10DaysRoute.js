@@ -2,7 +2,47 @@ import express from "express";
 import Prediction10Days from "../models/Prediction10Days.js";
 
 const router = express.Router();
+
+// router.post("/tenday", async (req, res) => {
+//   try {
+//     const { predictions } = req.body;
+//     if (!predictions || !Array.isArray(predictions)) {
+//       return res.status(400).json({ error: "Invalid predictions input" });
+//     }
+
+//     await Prediction10Days.bulkCreate(predictions, { validate: true });
+//     res.json({ success: true, message: "10-Day predictions uploaded" });
+//   } catch (err) {
+//     console.error("Error uploading 10-day predictions:", err);
+//     res.status(500).json({ error: "Database error while saving predictions" });
+//   }
+// });
+
 // Assign prediction tasks to a user
+
+router.post("/tenday", async (req, res) => {
+  try {
+    let { predictions } = req.body;
+
+    if (!predictions || !Array.isArray(predictions)) {
+      return res.status(400).json({ error: "Invalid predictions input" });
+    }
+
+    // drop id so DB can auto-generate
+    predictions = predictions.map(({ id, ...rest }) => rest);
+
+    await Prediction10Days.bulkCreate(predictions, { validate: true });
+
+    res.json({ success: true, message: "10-Day predictions uploaded" });
+  } catch (err) {
+    console.error("Error uploading 10-day predictions:", err);
+    res
+      .status(500)
+      .json({
+        error: err.message || "Database error while saving predictions",
+      });
+  }
+});
 router.post("/assignPredictions10days", async (req, res) => {
   try {
     const { userId, taskCount } = req.body;
