@@ -1,5 +1,7 @@
+//assignActivities.js
 import express from "express";
 import ActivityData from "../models/ActivityData.js";
+import { Op } from "sequelize";
 // import { sequelize, activities } from "../db/index.js"; // ✅
 
 const router = express.Router();
@@ -138,45 +140,130 @@ router.get("/activities", async (req, res) => {
 //   }
 // });
 
+// router.post("/assignActivities", async (req, res) => {
+//   try {
+//     const { userId, taskCount, targetLanguage } = req.body;
+
+//     const sanitizedTargetLang = (targetLanguage || "").toString().trim();
+//     if (!userId || !taskCount || !sanitizedTargetLang) {
+//       return res
+//         .status(400)
+//         .json({ error: "Missing userId, taskCount, targetLanguage " });
+//     }
+//     // Validate targetLanguage against allowed languages (optional but recommended)
+//     const validLanguages = ["en", "hi", "gu", "mr", "te", "bn"];
+//     if (!validLanguages.includes(sanitizedTargetLang)) {
+//       return res.status(400).json({
+//         error: `Invalid targetLanguage. Allowed: ${validLanguages.join(", ")}`,
+//       });
+//     }
+//     // Fetch the user's username from the User table
+//     const user = await import("../models/User.js").then((m) =>
+//       m.default.findByPk(userId)
+//     );
+//     if (!user) {
+//       return res.status(404).json({ error: "User not found" });
+//     }
+
+//     const username = user.username;
+
+//     // Fetch unassigned activities rows
+//     const activity = await ActivityData.findAll({
+//       where: { assigned_to: null }, // or assigned_to: '' depending on DB
+//       limit: parseInt(taskCount, 10),
+//     });
+//     console.log("📥 Received body:", req.body);
+//     console.log("🔍 targetLanguage:", targetLanguage);
+//     console.log("✅ Valid languages:", validLanguages);
+//     console.log("isContained:", validLanguages.includes(targetLanguage));
+//     if (activity.length === 0) {
+//       return res
+//         .status(400)
+//         .json({ error: "No unassigned activities rows available" });
+//     }
+//     // Build dynamic status field name: e.g., "status_hi"
+//     const statusField = `status_${sanitizedTargetLang}`;
+
+//     // Update the rows with the assigned username
+//     await Promise.all(
+//       activity.map((activity) =>
+//         activity.update({
+//           assigned_to: username,
+//           status: "working",
+//           [statusField]: assigned,
+//         })
+//       )
+//     );
+
+//     res.status(200).json({
+//       message: `✅ Assigned ${activity.length} activities to ${username}`,
+//     });
+//   } catch (error) {
+//     console.error("❌ Error assigning activities:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
 router.post("/assignActivities", async (req, res) => {
   try {
-    const { userId, taskCount } = req.body;
+    const { userId, taskCount, targetLanguage } = req.body;
 
-    if (!userId || !taskCount) {
-      return res.status(400).json({ error: "Missing userId or taskCount" });
+    const sanitizedTargetLang = (targetLanguage || "").toString().trim();
+
+    // ✅ Correct validation
+    if (!userId || !taskCount || !sanitizedTargetLang) {
+      return res.status(400).json({
+        error: "Missing userId, taskCount, or targetLanguage",
+      });
     }
 
-    // Fetch the user's username from the User table
-    const user = await import("../models/User.js").then((m) =>
-      m.default.findByPk(userId)
-    );
+    // ✅ Validate language codes
+    const validLanguages = ["en", "hi", "gu", "mr", "te", "bn"];
+    if (!validLanguages.includes(sanitizedTargetLang)) {
+      return res.status(400).json({
+        error: `Invalid targetLanguage. Allowed: ${validLanguages.join(", ")}`,
+      });
+    }
+
+    // Fetch user
+    const User = (await import("../models/User.js")).default;
+    const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
     const username = user.username;
+    const statusField = `status_${sanitizedTargetLang}`;
 
-    // Fetch unassigned activities rows
-    const activity = await ActivityData.findAll({
-      where: { assigned_to: null }, // or assigned_to: '' depending on DB
+    // Fetch unassigned activities
+    const activities = await ActivityData.findAll({
+      [statusField]: {
+        [Op.or]: [null, "pending"],
+      },
       limit: parseInt(taskCount, 10),
     });
 
-    if (activity.length === 0) {
+    if (activities.length === 0) {
       return res
-        .status(400)
+        .status(404)
         .json({ error: "No unassigned activities rows available" });
     }
 
-    // Update the rows with the assigned username
+    // ✅ Build correct field name: e.g. "status_mr"
+
+    // ✅ Update activities with "assigned"
     await Promise.all(
-      activity.map((activity) =>
-        activity.update({ assigned_to: username, status: "working" })
+      activities.map((a) =>
+        a.update({
+          assigned_to: username,
+          status: "working",
+          [statusField]: "assigned",
+        })
       )
     );
 
     res.status(200).json({
-      message: `✅ Assigned ${activity.length} activities to ${username}`,
+      message: `✅ Assigned ${activities.length} activities to ${username} with ${statusField} = "assigned".`,
     });
   } catch (error) {
     console.error("❌ Error assigning activities:", error);

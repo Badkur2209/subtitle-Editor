@@ -41,7 +41,7 @@ const ActivityData = sequelize.define(
 
     Time: { type: DataTypes.TEXT, field: "Time" },
 
-    timeWithSpace: { type: DataTypes.TEXT, field: "Time " }, 
+    timeWithSpace: { type: DataTypes.TEXT, field: "Time " },
     Time2: { type: DataTypes.CHAR, field: "Time2" },
 
     Tithi: DataTypes.TEXT,
@@ -67,6 +67,13 @@ const ActivityData = sequelize.define(
       defaultValue: "pending",
       allowNull: false,
     },
+    status_en: DataTypes.TEXT,
+    status_hi: DataTypes.TEXT,
+    status_gu: DataTypes.TEXT,
+    status_mr: DataTypes.TEXT,
+    status_te: DataTypes.TEXT,
+    status_bn: DataTypes.TEXT,
+    mksabb: DataTypes.TEXT,
   },
   {
     tableName: "activities",

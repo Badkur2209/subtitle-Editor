@@ -1,6 +1,7 @@
 import React, { useState, FormEvent, useEffect, ChangeEvent } from "react";
 import * as XLSX from "xlsx";
 import { parse, format } from "date-fns";
+import { API_BASE_URL } from "../utils/config.ts";
 
 type Channel = { id: number; channel_name: string };
 type VideoRow = { video_title: string; link: string };
@@ -339,7 +340,10 @@ const VideoForm: React.FC = () => {
   const [result, setResult] = useState<string>("");
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/channels")
+    fetch(
+      // "http://localhost:5000/api/channels"
+      `${API_BASE_URL}/channels`
+    )
       .then((res) => res.json())
       .then((data) => setChannels(data))
       .catch(() => setError("Failed to load channels"));
@@ -412,14 +416,18 @@ const VideoForm: React.FC = () => {
     }
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/videos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          channel_id: Number(selectedChannelId),
-          videos,
-        }),
-      });
+      const res = await fetch(
+        // "http://localhost:5000/api/videos"
+        `${API_BASE_URL}/videos`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            channel_id: Number(selectedChannelId),
+            videos,
+          }),
+        }
+      );
       if (res.ok) {
         setResult("Videos uploaded successfully!");
         setVideos([]);
@@ -523,11 +531,15 @@ const ChannelForm: React.FC = () => {
     }
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/channels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel_name: channelName, description }),
-      });
+      const res = await fetch(
+        // "http://localhost:5000/api/channels"
+        `${API_BASE_URL}/channels`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channel_name: channelName, description }),
+        }
+      );
       if (res.ok) {
         setResultMsg("Channel created successfully!");
         setChannelName("");
@@ -592,155 +604,7 @@ const ChannelForm: React.FC = () => {
   );
 };
 type PredictionRow = { [k: string]: string | undefined };
-// const DailyPredictionForm: React.FC = () => {
 
-//   const [file, setFile] = useState<File | null>(null);
-//   const [predictions, setPredictions] = useState<PredictionRow[]>([]);
-//   const [error, setError] = useState("");
-//   const [result, setResult] = useState("");
-//   const [loading, setLoading] = useState(false);
-
-//   const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
-//     setError("");
-//     setResult("");
-//     setPredictions([]);
-//     const f = e.target.files?.[0];
-//     if (!f) {
-//       setFile(null);
-//       return;
-//     }
-//     if (!f.name.match(/\.(xlsx|xls)$/)) {
-//       setError("Upload .xlsx/.xls");
-//       return;
-//     }
-//     setFile(f);
-
-//     const reader = new FileReader();
-//     reader.onload = (ev) => {
-//       try {
-//         /* read sheet */
-//         const wb = XLSX.read(new Uint8Array(ev.target!.result as ArrayBuffer), {
-//           type: "array",
-//         });
-//         const ws = wb.Sheets[wb.SheetNames[0]];
-//         const arr = XLSX.utils.sheet_to_json(ws, {
-//           header: 1,
-//           defval: "",
-//         }) as string[][];
-
-//         /* header check */
-//         if (arr.length < 2) {
-//           setError("No data rows");
-//           return;
-//         }
-//         const fileH = arr[0].map((h) => h.toString().toLowerCase().trim());
-//         const miss = requiredHeaders.filter((h) => !fileH.includes(h));
-//         if (miss.length) {
-//           setError("Missing cols: " + miss.join(", "));
-//           return;
-//         }
-
-//         /* build rows */
-//         const rows = arr.slice(1);
-//         const preds: PredictionRow[] = rows
-//           .map((r) => {
-//             const o: PredictionRow = {};
-//             fileH.forEach((h, i) => {
-//               if (r[i] !== "") o[h] = r[i].toString();
-//             });
-//             const iso = normalizeDate(o.fromdate || o.todate || "");
-//             if (!iso) return null as any;
-//             o.fromdate = o.todate = iso;
-//             return o;
-//           })
-//           .filter((p): p is PredictionRow => !!p);
-
-//         /* lrname validation */
-//         /* ------- LR-NAME VALIDATION (replace old block) -------- */
-//         const groups: Record<string, Set<string>> = {};
-
-//         // build 1 Set per date
-//         preds.forEach((p) => {
-//           const dateISO = p.fromdate!;
-//           const lr = (p.lrname || "").trim();
-//           if (!lr) return;
-//           (groups[dateISO] = groups[dateISO] ?? new Set()).add(lr);
-//         });
-
-//         // find any date whose unique-lrname count ≠ 12
-//         const bad: string[] = [];
-//         const missingInfo: string[] = [];
-
-//         for (const [d, set] of Object.entries(groups)) {
-//           if (set.size !== 12) {
-//             bad.push(`${d} (${set.size}/12)`);
-//             const missing = LAGNAs.filter((l) => !set.has(l));
-//             missingInfo.push(`${d}: missing → ${missing.join(", ")}`);
-//           }
-//         }
-
-//         if (bad.length) {
-//           setError(
-//             `Add missing lrname rows for: ${missingInfo.join(" | ")}` // shows which are absent
-//           );
-//           return; // block further processing
-//         }
-
-//         setResult("✅ Headers OK & every date has 12 UNIQUE lrname rows");
-//       } catch {
-//         setError("Cannot parse Excel");
-//       }
-//     };
-//     reader.readAsArrayBuffer(f);
-//   };
-
-//   const upload = async (e: FormEvent) => {
-//     e.preventDefault();
-//     if (!predictions.length || error) return;
-//     setLoading(true);
-//     await fetch("http://localhost:5000/api/predictions/daily", {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({ predictions }),
-//     });
-//     setLoading(false);
-//     setResult("Uploaded!");
-//     setFile(null);
-//     setPredictions([]);
-//   };
-
-//   return (
-//     <form onSubmit={upload} className="space-y-4">
-//       <h3 className="text-xl font-semibold">Daily Prediction Upload</h3>
-
-//       {error && <div className="text-red-600">{error}</div>}
-//       {result && <div className="text-green-600">{result}</div>}
-
-//       <input
-//         type="file"
-//         id="excelUpload"
-//         disabled={loading}
-//         accept=".xlsx,.xls"
-//         onChange={handleFile}
-//       />
-
-//       {predictions.length > 0 && (
-//         <p className="text-sm text-gray-600">
-//           Parsed {predictions.length} rows • ready to upload
-//         </p>
-//       )}
-
-//       <button
-//         disabled={loading || !predictions.length || !!error}
-//         className="bg-blue-600 text-white px-4 py-2 rounded disabled:bg-gray-400"
-//       >
-//         {loading ? "Uploading…" : "Upload Predictions"}
-//       </button>
-//     </form>
-//   );
-// };
-
-// --- Placeholders for other forms (unchanged) ---
 // const DailyPredictionForm: React.FC = () => <div>daily Prediction Form</div>;
 const DailyPredictionForm: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -841,50 +705,6 @@ const DailyPredictionForm: React.FC = () => {
     };
     reader.readAsArrayBuffer(selectedFile);
   };
-
-  // const validateData = (data: any[]) => {
-  //   const validationErrors: string[] = [];
-
-  //   if (!data.length) {
-  //     validationErrors.push("Excel file is empty.");
-  //   } else {
-  //     // Validate columns
-  //     const fileCols = Object.keys(data[0]);
-  //     const missingCols = modelCols.filter((col) => !fileCols.includes(col));
-  //     if (missingCols.length) {
-  //       validationErrors.push(`Missing columns: ${missingCols.join(", ")}`);
-  //     }
-
-  //     // Group by date and validate 12 lagnas
-  //     const grouped: Record<string, Set<string>> = {};
-  //     data.forEach((row, idx) => {
-  //       if (!row.fromdate && !row.todate) {
-  //         validationErrors.push(`Row ${idx + 1}: Missing fromdate/todate`);
-  //       }
-  //       if (!row.lrname) {
-  //         validationErrors.push(`Row ${idx + 1}: Missing lrname`);
-  //       }
-  //       const dateKey = row.fromdate || row.todate;
-  //       if (!grouped[dateKey]) grouped[dateKey] = new Set();
-  //       grouped[dateKey].add(row.lrname?.trim());
-  //     });
-
-  //     // Check each date has all 12 lagnas
-  //     Object.entries(grouped).forEach(([date, lagnaSet]) => {
-  //       const missing = REQUIRED_LAGNAS.filter((lagna) => !lagnaSet.has(lagna));
-  //       if (missing.length) {
-  //         validationErrors.push(
-  //           `Date ${date} missing lagnas: ${missing.join(", ")}`
-  //         );
-  //       }
-  //     });
-  //   }
-
-  //   setErrors(validationErrors);
-  //   if (validationErrors.length === 0) {
-  //     setPredictions(data);
-  //   }
-  // };
   const validateData = (data: any[]) => {
     const validationErrors: string[] = [];
     const grouped: Record<string, Set<string>> = {};
@@ -892,7 +712,7 @@ const DailyPredictionForm: React.FC = () => {
     if (!data.length) {
       validationErrors.push("Excel file is empty.");
     } else {
-      // Validate columns
+      // 1️⃣ Validate columns
       const fileCols = Object.keys(data[0]);
       const missingCols = modelCols.filter((col) => !fileCols.includes(col));
       if (missingCols.length) {
@@ -900,37 +720,31 @@ const DailyPredictionForm: React.FC = () => {
       }
 
       data.forEach((row, idx) => {
-        // --- Normalize Date ---
-        let dateValue = row.fromdate || row.todate;
-        let formattedDate = "";
-        if (typeof dateValue === "number") {
-          // Excel serial date -> JS Date
-          const parsed = XLSX.SSF.parse_date_code(dateValue);
-          if (parsed) {
-            const jsDate = new Date(parsed.y, parsed.m - 1, parsed.d);
-            formattedDate = format(jsDate, "dd/MM/yyyy");
-          }
-        } else if (typeof dateValue === "string") {
-          // Expect format dd/MM/yyyy
-          formattedDate = dateValue.trim();
-        }
+        const dateValue = row.fromdate || row.todate;
+        // Keep date as text (stringify if number)
+        const formattedDate =
+          dateValue !== undefined && dateValue !== null
+            ? String(dateValue).trim()
+            : "";
 
+        // 2️⃣ Validate: Must have some date
         if (!formattedDate) {
           validationErrors.push(`Row ${idx + 1}: Invalid or missing date`);
         }
 
-        if (!row.lrname) {
+        // 3️⃣ Validate: Must have 'lrname'
+        if (!row.lrname || row.lrname.toString().trim() === "") {
           validationErrors.push(`Row ${idx + 1}: Missing lrname`);
         }
 
-        // Group by formatted date
+        // 4️⃣ Grouping only if date is valid
         if (formattedDate) {
           if (!grouped[formattedDate]) grouped[formattedDate] = new Set();
-          grouped[formattedDate].add(row.lrname?.trim());
+          grouped[formattedDate].add(row.lrname.toString().trim());
         }
       });
 
-      // Check for missing lagnas per date
+      // 5️⃣ Check for missing lagnas per date
       Object.entries(grouped).forEach(([date, lagnaSet]) => {
         const missing = REQUIRED_LAGNAS.filter((lagna) => !lagnaSet.has(lagna));
         if (missing.length) {
@@ -942,21 +756,27 @@ const DailyPredictionForm: React.FC = () => {
     }
 
     setErrors(validationErrors);
+
     if (validationErrors.length === 0) {
       setPredictions(data);
     }
   };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setResult("");
     if (errors.length > 0 || predictions.length === 0) return;
 
     try {
-      const res = await fetch("http://localhost:5000/api/predictions/daily", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ predictions }),
-      });
+      const res = await fetch(
+        // "http://localhost:5000/api/predictions/daily"
+        `${API_BASE_URL}/predictions/daily`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ predictions }),
+        }
+      );
       if (res.ok) {
         setResult("Predictions uploaded successfully!");
         setPredictions([]);
@@ -1193,6 +1013,7 @@ const TenDayPredictionForm: React.FC = () => {
   //     setPredictions(data);
   //   }
   // };
+
   const validateData = (data: any[]) => {
     const validationErrors: string[] = [];
 
@@ -1262,11 +1083,15 @@ const TenDayPredictionForm: React.FC = () => {
     if (errors.length > 0 || predictions.length === 0) return;
 
     try {
-      const res = await fetch("http://localhost:5000/api/predictions/tenday", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ predictions }),
-      });
+      const res = await fetch(
+        // "http://localhost:5000/api/predictions/tenday"
+        `${API_BASE_URL}/predictions/tenday`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ predictions }),
+        }
+      );
       if (res.ok) {
         setResult("10-Day Predictions uploaded successfully!");
         setPredictions([]);
@@ -1341,19 +1166,199 @@ const TenDayPredictionForm: React.FC = () => {
     </form>
   );
 };
-const TranslateForm: React.FC = () => <div>Translate Form</div>;
+const ActivityForm: React.FC = () => {
+  const [file, setFile] = useState<File | null>(null);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [result, setResult] = useState<string>("");
 
+  const modelCols = [
+    "Date",
+    "url",
+    "TotalDuration",
+    "MKSA_start",
+    "MKSA_end",
+    "BB_Start",
+    "BB_End",
+    "day",
+    "ActivityTimeReminderTime",
+    "act_en",
+    "act_hi",
+    "en",
+    "hi",
+    "gu",
+    "bn",
+    "te",
+    "mr",
+    "SuvarnAkshar",
+    "BlastingBirthday",
+    "MarriageAnniversary",
+    "Manifestation",
+    "WishList",
+    "SpecificProblem",
+    "NoOfSteps",
+    "RepeatNumber",
+    "Tantra",
+    "Mantra",
+    "Mudra",
+    "Position",
+    "Day",
+    "Bath",
+    "Time",
+    "Time2",
+    "Tithi",
+    "Planet",
+    "Material",
+    "MaterialQuantity",
+    "Astronomical",
+  ];
+
+  // --- Handle Excel File load ---
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setErrors([]);
+    setResult("");
+    setActivities([]);
+
+    if (!e.target.files?.length) return;
+    const selectedFile = e.target.files[0];
+    setFile(selectedFile);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      validateData(jsonData);
+    };
+    reader.readAsArrayBuffer(selectedFile);
+  };
+
+  // --- Basic validation like in TenDayPredictionForm ---
+  const validateData = (data: any[]) => {
+    const validationErrors: string[] = [];
+
+    if (!data.length) {
+      validationErrors.push("Excel file is empty.");
+    } else {
+      const fileCols = Object.keys(data[0]);
+      const missingCols = modelCols.filter((col) => !fileCols.includes(col));
+      if (missingCols.length) {
+        validationErrors.push(`Missing columns: ${missingCols.join(", ")}`);
+      }
+    }
+
+    setErrors(validationErrors);
+    if (!validationErrors.length) {
+      setActivities(data);
+    }
+  };
+
+  // --- Submit to backend ---
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setResult("");
+    if (errors.length > 0 || activities.length === 0) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/textbased/upload-activities`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activities }),
+      });
+
+      if (res.ok) {
+        setResult("Activities uploaded successfully!");
+        setActivities([]);
+        setFile(null);
+      } else {
+        const data = await res.json();
+        setErrors([data.error || "Failed to upload activities"]);
+      }
+    } catch {
+      setErrors(["Network error while uploading activities"]);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 w-full">
+      <h3 className="text-xl font-semibold mb-4">Upload Activities</h3>
+
+      {errors.length > 0 && (
+        <div className="text-red-600">
+          <ul className="list-disc ml-6">
+            {errors.map((err, idx) => (
+              <li key={idx}>{err}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {result && <div className="text-green-600">{result}</div>}
+
+      <input
+        type="file"
+        accept=".xlsx"
+        onChange={handleFileChange}
+        className="block"
+      />
+
+      {activities.length > 0 && (
+        <div className="overflow-x-auto max-h-60 border rounded p-2 bg-gray-50 text-xs">
+          <table className="w-full text-left">
+            <thead>
+              <tr>
+                {Object.keys(activities[0]).map((col) => (
+                  <th key={col} className="border px-2 py-1">
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {activities.slice(0, 5).map((row, idx) => (
+                <tr key={idx}>
+                  {Object.values(row).map((val, i) => (
+                    <td key={i} className="border px-2 py-1">
+                      {String(val ?? "")}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="text-gray-500 mt-2">
+            Showing first 5 rows ({activities.length} total)
+          </p>
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={errors.length > 0 || activities.length === 0}
+        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-blue-300"
+      >
+        Upload Activities
+      </button>
+    </form>
+  );
+};
+
+// const TranslateForm: React.FC = () => <div>Translate Form</div>;
+// const ActivityForm: React.FC = () => <div>Activity Form</div>;
 // --- Main Uploader Tabs and Component ---
 const TABS = [
   { key: "channel", label: "Channel", Component: ChannelForm },
   { key: "videos", label: "Videos", Component: VideoForm },
+  { key: "activity", label: "Activity", Component: ActivityForm },
+
   { key: "daily", label: "Predictions Daily", Component: DailyPredictionForm }, // Now working
   {
     key: "tenday",
     label: "Prediction 10 Days",
     Component: TenDayPredictionForm,
   },
-  { key: "translate", label: "Translate", Component: TranslateForm },
+  // { key: "translate", label: "Translate", Component: TranslateForm },
 ];
 const Uploader: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("channel");

@@ -3,20 +3,22 @@ import fs from "fs";
 import path from "path";
 import Video from "../models/Video.js";
 import Channel from "../models/Channel.js";
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const axios = require("axios");
+import axios from "axios";
 
-const { language, content } = req.body;
-const { videoId } = req.params;
+import { fileURLToPath } from "url";
 
-if (!language || !content || !videoId) {
-  return res.status(400).json({ error: "Missing fields" });
-}
+// recreate __filename and __dirname in ES module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// now use __dirname
+const STORAGE_PATH = path.join(__dirname, "../storage");
 
 // save subtitles as e.g. <videoId>_<language>.vtt
-const filePath = path.join(STORAGE_PATH, `${videoId}_${language}.vtt`);
-fs.writeFileSync(filePath, content, "utf-8");
+// const filePath = path.join(STORAGE_PATH, `${videoId}_${language}.vtt`);
+// fs.writeFileSync(filePath, content, "utf-8");
 
 router.post("/translate", async (req, res) => {
   try {
@@ -41,48 +43,51 @@ router.post("/translate", async (req, res) => {
   }
 });
 // GET /api/vtt/:videoId
-app.get("/api/vtt/:videoId", async (req, res) => {
-  try {
-    const { videoId } = req.params;
+// app.get("/api/vtt/:videoId", async (req, res) => {
+//   try {
+//     const { videoId } = req.params;
 
-    // Get video with channel info
-    const video = await Video.findByPk(videoId, {
-      include: [{ model: Channel, attributes: ["channel_name"] }],
-    });
+//     // Get video with channel info
+//     const video = await Video.findOne({ where: { id: videoId } });
 
-    if (!video) {
-      return res.status(404).json({ error: "Video not found" });
-    }
+//     if (!video) {
+//       return res.status(404).json({ error: "Video not found" });
+//     }
 
-    const channelName = video.Channel.channel_name;
-    const videoTitle = video.video_title;
-    const vttPath = path.join("storage", channelName, `${videoTitle}.vtt`);
+//     const channelName = video.Channel.channel_name;
+//     const videoTitle = video.video_title;
+//     const vttPath = path.join("storage", channelName, `${videoTitle}.vtt`);
 
-    // Check if file exists
-    if (!fs.existsSync(vttPath)) {
-      return res.status(404).json({ error: "VTT file not found" });
-    }
+//     // Check if file exists
+//     if (!fs.existsSync(vttPath)) {
+//       return res.status(404).json({ error: "VTT file not found" });
+//     }
 
-    const content = fs.readFileSync(vttPath, "utf8");
+//     const content = fs.readFileSync(vttPath, "utf8");
 
-    res.json({
-      content: content,
-      link: video.link,
-    });
-  } catch (error) {
-    console.error("Error loading VTT:", error);
-    res.status(500).json({ error: "Failed to load VTT file" });
-  }
-});
+//     res.json({
+//       content: content,
+//       link: video.link,
+//     });
+//   } catch (error) {
+//     console.error("Error loading VTT:", error);
+//     res.status(500).json({ error: "Failed to load VTT file" });
+//   }
+// });
 
 // POST /api/vtt/:videoId/translate
-app.post("/api/vtt/:videoId/translate", async (req, res) => {
+router.post("/vtt/:videoId/translate", async (req, res) => {
   try {
     const { videoId } = req.params;
     const { language, content } = req.body;
 
-    // Get video with channel info
-    const video = await Video.findByPk(videoId, {
+    if (!videoId || !language || !content) {
+      return res.status(400).json({ error: "Missing fields" });
+    }
+
+    // check existence
+    const video = await Video.findOne({
+      where: { id: videoId },
       include: [{ model: Channel, attributes: ["channel_name"] }],
     });
 
@@ -93,7 +98,6 @@ app.post("/api/vtt/:videoId/translate", async (req, res) => {
     const channelName = video.Channel.channel_name;
     const videoTitle = video.video_title;
 
-    // Create translated filename
     const translatedFilename = `${videoTitle}_${language}.vtt`;
     const translatedPath = path.join(
       "storage",
@@ -101,28 +105,25 @@ app.post("/api/vtt/:videoId/translate", async (req, res) => {
       translatedFilename
     );
 
-    // Ensure directory exists
+    // ensure dir
     const dir = path.join("storage", channelName);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    // Save translated file
     fs.writeFileSync(translatedPath, content);
 
-    // Update video status for this language
     const statusField = `status_${language}`;
     await video.update({ [statusField]: "completed" });
 
-    res.json({
+    return res.json({
       success: true,
       filepath: translatedPath,
       message: `Translation saved for ${language}`,
     });
   } catch (error) {
-    console.error("Error saving translation:", error);
-    res.status(500).json({ error: "Failed to save translation" });
+    console.error("Error in /translate:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
-
-module.exports = router;
+export default router;
