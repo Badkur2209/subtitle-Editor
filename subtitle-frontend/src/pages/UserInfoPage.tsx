@@ -10,8 +10,22 @@ type UserInfo = {
   roles: string[];
   status: string;
 };
+const LANGUAGE_OPTIONS: { code: string; label: string }[] = [
+  { code: "en", label: "English" },
+  { code: "hi", label: "Hindi" },
+  { code: "mr", label: "Marathi" },
+  { code: "gu", label: "Gujarati" },
+  { code: "bn", label: "Bengali" },
+  { code: "te", label: "Telugu" },
+];
 
-const LANG_PAIR_OPTIONS = ["hi_en", "hi_mr", "hi_bn", "en_hi", "mr_en"];
+const ALL_PAIRS = LANGUAGE_OPTIONS.flatMap((src) =>
+  LANGUAGE_OPTIONS.filter((dst) => dst.code !== src.code).map((dst) => ({
+    value: `${src.code}_${dst.code}`,
+    label: `${src.label} to ${dst.label}`,
+  }))
+);
+const langPairs_OPTIONS = ["hi_en", "hi_mr", "hi_bn", "en_hi", "mr_en"];
 const ROLE_OPTIONS = [
   "translator",
   "uploader",
@@ -55,6 +69,11 @@ const UserInfoPage: React.FC = () => {
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [fromLang, setFromLang] = useState("");
+  const [toLang, setToLang] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const USERS_PER_PAGE = 10;
 
   // Load users on mount
   useEffect(() => {
@@ -82,6 +101,18 @@ const UserInfoPage: React.FC = () => {
     setError("");
     setPasswordError("");
   };
+  const filteredUsers = users.filter(
+    (u) =>
+      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
+  const startIndex = (currentPage - 1) * USERS_PER_PAGE;
+  const paginatedUsers = filteredUsers.slice(
+    startIndex,
+    startIndex + USERS_PER_PAGE
+  );
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -157,6 +188,28 @@ const UserInfoPage: React.FC = () => {
       setError("Network/server error.");
     }
   };
+  const handleAddPair = () => {
+    const pairValue = `${fromLang}_${toLang}`;
+    const pairLabel = ALL_PAIRS.find((p) => p.value === pairValue)?.label;
+    if (!pairLabel) return;
+
+    if (form.langPairs.includes(pairValue)) {
+      setError("This language pair is already added.");
+      return;
+    }
+    if (form.langPairs.length >= 4) {
+      setError("Maximum of 4 language pairs allowed.");
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      langPairs: [...prev.langPairs, pairValue],
+    }));
+    // Optionally track labels separately for display, or derive from ALL_PAIRS
+    setFromLang("");
+    setToLang("");
+  };
 
   return (
     <div className="p-6 max-w-full mx-auto">
@@ -224,8 +277,8 @@ const UserInfoPage: React.FC = () => {
 
           {/* Language Pairs */}
           <label className="block font-medium mb-1">Language Pairs</label>
-          <div className="flex flex-wrap gap-4 mb-3">
-            {LANG_PAIR_OPTIONS.map((pair) => (
+          {/* <div className="flex flex-wrap gap-4 mb-3">
+            {langPairs_OPTIONS.map((pair) => (
               <label key={pair} className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -236,6 +289,80 @@ const UserInfoPage: React.FC = () => {
                 />{" "}
                 {pair}
               </label>
+            ))}
+          </div> */}
+          <div className="mb-4">
+            <label className="block font-medium mb-1">Add Language Pair</label>
+            <div className="flex gap-2 items-center">
+              <select
+                value={fromLang}
+                onChange={(e) => setFromLang(e.target.value)}
+                className="p-2 border rounded"
+              >
+                <option value="">From</option>
+                {LANGUAGE_OPTIONS.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={toLang}
+                onChange={(e) => setToLang(e.target.value)}
+                className="p-2 border rounded"
+                disabled={!fromLang}
+              >
+                <option value="">To</option>
+                {LANGUAGE_OPTIONS.filter((lang) => lang.code !== fromLang).map(
+                  (lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.label}
+                    </option>
+                  )
+                )}
+              </select>
+
+              <button
+                type="button"
+                onClick={handleAddPair}
+                disabled={
+                  !fromLang ||
+                  !toLang ||
+                  fromLang === toLang ||
+                  form.langPairs.length >= 4
+                }
+                className="bg-green-600 text-white px-3 py-1 rounded disabled:opacity-50"
+              >
+                Add
+              </button>
+            </div>
+            {error && fromLang && toLang && fromLang === toLang && (
+              <div className="text-red-600 text-sm mt-1">
+                Source and target must differ.
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {form.langPairs.map((pair, idx) => (
+              <span
+                key={idx}
+                className="flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded"
+              >
+                {pair}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForm((prev) => ({
+                      ...prev,
+                      langPairs: prev.langPairs.filter((p) => p !== pair),
+                    }));
+                  }}
+                  className="ml-1 text-red-600 hover:text-red-800"
+                >
+                  ×
+                </button>
+              </span>
             ))}
           </div>
 
@@ -286,6 +413,22 @@ const UserInfoPage: React.FC = () => {
           </div>
         </form>
       </div>
+      {/* search bar */}
+      <div className="flex justify-between items-center mb-4">
+        <input
+          type="text"
+          placeholder="Search by name or username"
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1); // reset to first page on new search
+          }}
+          className="p-2 border rounded w-1/3"
+        />
+        <span className="text-gray-600">
+          Showing {paginatedUsers.length} of {filteredUsers.length} users
+        </span>
+      </div>
 
       {/* User List/Table */}
       <div>
@@ -304,30 +447,58 @@ const UserInfoPage: React.FC = () => {
               <th className="border px-2 py-1">Status</th>
             </tr>
           </thead>
+
           <tbody>
-            {users.map((u) => (
+            {paginatedUsers.map((u) => (
               <tr key={u.id}>
-                <td className="border px-2 py-1">{u.name || ""}</td>
+                <td className="border px-2 py-1">{u.name}</td>
                 <td className="border px-2 py-1">{u.username}</td>
                 {Array.from({ length: 4 }).map((_, i) => (
                   <td key={i} className="border px-2 py-1">
-                    {u.langPairs?.[i] || "-"}
+                    {u.langPairs[i] || "-"}
                   </td>
                 ))}
-                <td className="border px-2 py-1">
-                  {(u.roles || []).join(", ")}
-                </td>
+                <td className="border px-2 py-1">{u.roles.join(", ")}</td>
                 <td
                   className={`border px-2 py-1 ${
                     u.status === "active" ? "text-green-600" : "text-red-600"
                   }`}
                 >
-                  {u.status || "active"}
+                  {u.status}
                 </td>
               </tr>
             ))}
+            {paginatedUsers.length === 0 && (
+              <tr>
+                <td colSpan={7} className="text-center py-4 text-gray-500">
+                  No users found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
+        <div className="flex justify-center items-center gap-4 py-4">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            Previous
+          </button>
+
+          <span>
+            Page {currentPage} of {totalPages}
+          </span>
+
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+
         {users.length === 0 && (
           <p className="text-gray-500 text-center py-8">No users found.</p>
         )}

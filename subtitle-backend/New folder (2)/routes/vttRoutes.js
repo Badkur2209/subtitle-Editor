@@ -39,7 +39,7 @@ router.get("/vtt/:videoId", async (req, res) => {
     );
 
     if (!fs.existsSync(vttPath)) {
-      return res.status(404).json({ error: "VTT file not found" });
+      return res.status(404).json({ error: "yyttrr VTT file not found" });
     }
 
     const content = fs.readFileSync(vttPath, "utf-8");

@@ -84,7 +84,7 @@ const Translate: React.FC = () => {
   useEffect(() => {
     if (!selectedVideo) return;
     const interval = setInterval(() => {
-      handleSave();
+      // handleSave();
     }, 30000);
     return () => clearInterval(interval);
   }, [selectedVideo, translatedSegments]);
@@ -160,7 +160,9 @@ const Translate: React.FC = () => {
     setError(null);
     try {
       // Now call backend with videoId (not channel + videoTitle)
-      const res = await axios.get(`${API_BASE_URL}/vtt/${selectedVideo.id}`);
+      const res = await axios.get(
+        `${API_BASE_URL}/vtt/${selectedVideo.id}/${sourceLangKey}`
+      );
 
       const parsed = parseVTT(res.data.content);
       setSegments(parsed);

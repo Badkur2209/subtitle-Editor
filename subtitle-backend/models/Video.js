@@ -20,6 +20,12 @@ const Video = sequelize.define(
     status_bn: { type: DataTypes.STRING },
     status_te: { type: DataTypes.STRING },
     status_gu: { type: DataTypes.STRING },
+    vtt_en: { type: DataTypes.STRING },
+    vtt_hi: { type: DataTypes.STRING },
+    vtt_mr: { type: DataTypes.STRING },
+    vtt_te: { type: DataTypes.STRING },
+    vtt_bn: { type: DataTypes.STRING },
+    vtt_gu: { type: DataTypes.STRING },
   },
   { tableName: "videos", timestamps: false }
 );

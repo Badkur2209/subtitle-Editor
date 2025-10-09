@@ -11,7 +11,7 @@ import { API_BASE_URL } from "../utils/config.ts";
 //'https://api.ayushcms.info/api/auth/login'
 //'https://api.ayushcms.info/api/auth/verify'
 
-interface User {
+export interface User {
   id: number;
   name: string;
   username: string;

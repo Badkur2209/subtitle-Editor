@@ -43,37 +43,37 @@ router.post("/translate", async (req, res) => {
   }
 });
 // GET /api/vtt/:videoId
-// app.get("/api/vtt/:videoId", async (req, res) => {
-//   try {
-//     const { videoId } = req.params;
+router.get("/vtt/:videoId", async (req, res) => {
+  try {
+    const { videoId } = req.params;
 
-//     // Get video with channel info
-//     const video = await Video.findOne({ where: { id: videoId } });
+    // Get video with channel info
+    const video = await Video.findOne({ where: { id: videoId } });
 
-//     if (!video) {
-//       return res.status(404).json({ error: "Video not found" });
-//     }
+    if (!video) {
+      return res.status(404).json({ error: "Video not found" });
+    }
 
-//     const channelName = video.Channel.channel_name;
-//     const videoTitle = video.video_title;
-//     const vttPath = path.join("storage", channelName, `${videoTitle}.vtt`);
+    const channelName = video.Channel.channel_name;
+    const videoTitle = video.video_title;
+    const vttPath = path.join("storage", channelName, `${videoTitle}.vtt`);
 
-//     // Check if file exists
-//     if (!fs.existsSync(vttPath)) {
-//       return res.status(404).json({ error: "VTT file not found" });
-//     }
+    // Check if file exists
+    if (!fs.existsSync(vttPath)) {
+      return res.status(404).json({ error: "VTT file not found" });
+    }
 
-//     const content = fs.readFileSync(vttPath, "utf8");
+    const content = fs.readFileSync(vttPath, "utf8");
 
-//     res.json({
-//       content: content,
-//       link: video.link,
-//     });
-//   } catch (error) {
-//     console.error("Error loading VTT:", error);
-//     res.status(500).json({ error: "Failed to load VTT file" });
-//   }
-// });
+    res.json({
+      content: content,
+      link: video.link,
+    });
+  } catch (error) {
+    console.error("Error loading VTT:", error);
+    res.status(500).json({ error: "Failed to load VTT file" });
+  }
+});
 
 // POST /api/vtt/:videoId/translate
 router.post("/vtt/:videoId/translate", async (req, res) => {
@@ -123,7 +123,9 @@ router.post("/vtt/:videoId/translate", async (req, res) => {
     });
   } catch (error) {
     console.error("Error in /translate:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: "Internal server error in translate" });
   }
 });
 export default router;

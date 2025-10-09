@@ -11,13 +11,19 @@ const router = Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const sanitizeFilename = (name) =>
-  name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
+const sanitizeFilename = (name = "") => {
+  if (typeof name !== "string") return ""; // safeguard for undefined/null
+  return name
+    .toLowerCase() // convert to lowercase
+    .replace(/[^a-z0-9\s]/g, "") // remove special characters
+    .trim() // trim edges
+    .replace(/\s+/g, "_"); // replace spaces with underscores
+};
 
 // GET /api/vtt/:videoId
-router.get("/vtt/:videoId", async (req, res) => {
+router.get("/vtt/:videoId/:selected_lang", async (req, res) => {
   try {
-    const { videoId } = req.params;
+    const { videoId, selected_lang } = req.params;
 
     const video = await Video.findByPk(videoId, {
       include: [{ model: Channel, attributes: ["channel_name"] }],
@@ -27,23 +33,26 @@ router.get("/vtt/:videoId", async (req, res) => {
       return res.status(404).json({ error: "Video not found" });
     }
 
-    const channelName = sanitizeFilename(video.Channel.channel_name);
-    const videoTitle = sanitizeFilename(video.video_title);
+    const channelName = sanitizeFilename(video.Channel.channel_name || "");
+    const videoTitle = sanitizeFilename(video.video_title || "");
+    const selectedLanguage = sanitizeFilename(selected_lang || "");
 
     const vttPath = path.join(
       __dirname,
       "..",
       "storage",
       channelName,
-      `${videoTitle}.vtt`
+      `${videoTitle}_${selectedLanguage}.vtt`
     );
+    console.log(vttPath);
 
     if (!fs.existsSync(vttPath)) {
-      return res.status(404).json({ error: "VTT file not found" });
+      return res
+        .status(404)
+        .json({ error: `VTT file not found at path ${vttPath}` });
     }
-
+    console.log("=================", vttPath);
     const content = fs.readFileSync(vttPath, "utf-8");
-
     res.json({
       content,
       link: video.link,

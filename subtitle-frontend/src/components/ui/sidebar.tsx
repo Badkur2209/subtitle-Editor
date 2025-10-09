@@ -9,6 +9,7 @@ interface SidebarContextType {
   setState: (state: SidebarState) => void;
   toggle: () => void;
   toggleMobile: () => void;
+  close: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
@@ -29,7 +30,9 @@ export const SidebarProvider = ({
   };
 
   return (
-    <SidebarContext.Provider value={{ state, setState, toggle, toggleMobile }}>
+    <SidebarContext.Provider
+      value={{ state, close, setState, toggle, toggleMobile }}
+    >
       {children}
     </SidebarContext.Provider>
   );

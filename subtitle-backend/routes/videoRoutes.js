@@ -11,39 +11,82 @@ const sanitizeFilename = (name) =>
   name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
 
 // --- GET: Load subtitles by videoId ---
-// router.get("/vtt/:videoId", async (req, res) => {
-//   try {
-//     const { videoId } = req.params;
+router.get("/vtt/:videoId", async (req, res) => {
+  try {
+    const { videoId } = req.params;
 
-//     // Fetch video including its channel
-//     const video = await Video.findByPk(videoId, {
-//       include: [{ model: Channel, attributes: ["channel_name"] }],
-//     });
+    // Fetch video including its channel
+    const video = await Video.findByPk(videoId, {
+      include: [{ model: Channel, attributes: ["channel_name"] }],
+    });
 
-//     if (!video) {
-//       return res.status(404).json({ error: "Video not found" });
-//     }
+    if (!video) {
+      return res.status(404).json({ error: "Video not found" });
+    }
 
-//     const channelName = sanitizeFilename(video.Channel.channel_name);
-//     const safeTitle = sanitizeFilename(video.video_title);
+    const channelName = sanitizeFilename(video.Channel.channel_name);
+    const safeTitle = sanitizeFilename(video.video_title);
 
-//     const filePath = path.join("storage", channelName, `${safeTitle}.vtt`);
+    const filePath = path.join("storage", channelName, `${safeTitle}.vtt`);
 
-//     if (!fs.existsSync(filePath)) {
-//       return res.status(404).json({ error: "VTT file not found" });
-//     }
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "VTT file not found" });
+    }
 
-//     const content = fs.readFileSync(filePath, "utf8");
+    const content = fs.readFileSync(filePath, "utf8");
 
-//     res.json({
-//       content,
-//       link: video.link,
-//     });
-//   } catch (error) {
-//     console.error("Error loading VTT:", error);
-//     res.status(500).json({ error: "Failed to load VTT file" });
-//   }
-// });
+    res.json({
+      content,
+      link: video.link,
+    });
+  } catch (error) {
+    console.error("Error loading VTT:", error);
+    res.status(500).json({ error: "Failed to load VTT file" });
+  }
+});
+
+// --- POST: Load subtitles by videoId ---
+router.post("/vtt", async (req, res) => {
+  try {
+    // Extract channel_id and videos list from request body
+    const { channel_id, videos } = req.body;
+
+    if (!channel_id) {
+      return res.status(400).json({ error: "channel_id is required" });
+    }
+
+    if (!Array.isArray(videos) || videos.length === 0) {
+      return res.status(400).json({ error: "videos list is required" });
+    }
+
+    // Prepare an array to hold results for all videos
+    const result = [];
+
+    // Iterate through each video in the videos list
+    for (const video of videos) {
+      const { link, video_title } = video; // Assuming each video has video_id and video_title
+
+      // Add video result to the response array
+      // result.push({
+      //   channel_id,
+      //   link: link,
+      //   video_title,
+      // });
+      await Video.create({
+        channel_id,
+        link: link,
+        video_title,
+      });
+    }
+
+    // Respond with the result for all videos
+    res.json({ status: "success" });
+  } catch (error) {
+    console.error("Error loading VTT:", error);
+    res.status(500).json({ error: "Failed to load VTT files" });
+  }
+});
+
 router.get("/:channelId", async (req, res) => {
   try {
     const channelId = parseInt(req.params.channelId, 10);

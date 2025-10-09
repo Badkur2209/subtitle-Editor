@@ -14,6 +14,7 @@ import vttRoutes from "./routes/vttRoutes.js";
 import assignActivities from "./routes/assignActivities.js";
 import translate from "./routes/translate.js";
 import approverRoutes from "./routes/approverRoutes.js";
+import activityParameters from "./routes/activityParameters";
 
 const app = express();
 
@@ -29,6 +30,7 @@ const app = express();
     app.use(express.json({ limit: "50mb" }));
     app.use(express.urlencoded({ limit: "50mb", extended: true }));
     app.use("/api", vttRoutes);
+    app.user("/api", activityParameters);
     app.use("/api/users", userInfoRouter);
     app.use("/api/auth", authRoutes);
     app.use("/api/subtitles", subtitleRoutes);

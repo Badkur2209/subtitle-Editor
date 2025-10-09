@@ -7,7 +7,11 @@ const ActivityData = sequelize.define(
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
 
-    Date: { type: DataTypes.TEXT, field: "Date" },
+    // Date: { type: DataTypes.TEXT, field: "Date" },
+    Date: {
+      type: DataTypes.DATEONLY, // Use DATEONLY for 'YYYY-MM-DD' dates
+      field: "Date",
+    },
     url: DataTypes.TEXT,
     TotalDuration: { type: DataTypes.TEXT, field: "TotalDuration" },
     MKSA_start: { type: DataTypes.TEXT, field: "MKSA_start" },
@@ -56,7 +60,7 @@ const ActivityData = sequelize.define(
     mr: DataTypes.TEXT,
 
     assigned_to: DataTypes.TEXT,
-    status: DataTypes.TEXT,
+    // status: DataTypes.TEXT,
 
     act_gu: DataTypes.TEXT,
     act_bn: DataTypes.TEXT,
@@ -74,11 +78,24 @@ const ActivityData = sequelize.define(
     status_te: DataTypes.TEXT,
     status_bn: DataTypes.TEXT,
     mksabb: DataTypes.TEXT,
+
+    dateStatus: DataTypes.TEXT,
+    unit: DataTypes.TEXT,
+    value: DataTypes.TEXT,
+    tithi1: DataTypes.TEXT,
+    tithi2: DataTypes.TEXT,
+    tithi3: DataTypes.TEXT,
+    tithi4: DataTypes.TEXT,
+    tithi5: DataTypes.TEXT,
+    planet1: DataTypes.TEXT,
+    planet2: DataTypes.TEXT,
+    planet3: DataTypes.TEXT,
+    Astronomical1: DataTypes.TEXT,
+    Astronomical2: DataTypes.TEXT,
   },
   {
     tableName: "activities",
     timestamps: false,
   }
 );
-
 export default ActivityData;

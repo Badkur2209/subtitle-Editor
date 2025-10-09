@@ -418,7 +418,7 @@ const VideoForm: React.FC = () => {
     try {
       const res = await fetch(
         // "http://localhost:5000/api/videos"
-        `${API_BASE_URL}/videos`,
+        `${API_BASE_URL}/videos/vtt`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
